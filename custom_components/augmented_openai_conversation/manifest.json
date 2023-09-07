@@ -4,7 +4,7 @@
   "issue_tracker": "https://github.com/andrew-codes/home-assistant-openai-custom-component/issues",
   "codeowners": ["@andrew-codes"],
   "name": "Augmented OpenAI Conversation Agent",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "integration_type": "service",
   "config_flow": true,
   "dependencies": ["conversation"],
