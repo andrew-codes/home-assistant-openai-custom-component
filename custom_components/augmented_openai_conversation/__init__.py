@@ -197,15 +197,15 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         _LOGGER.debug("Response %s", result)
         response = result["choices"][0]["message"]
         try:
-            response_json = json.loads(response)
+            response_json = json.loads(response["content"])
             if response_json["action"] == "query":
-                response = response_json["summary"]
+                response["content"] = response_json["summary"]
             elif response_json["action"] == "command" or response_json["action"] == "set":
-                response = response_json["comment"]
+                response["content"] = response_json["comment"]
             elif response_json["action"] == "clarify":
-                response = response_json["question"]
+                response["content"] = response_json["question"]
             elif response_json["action"] == "answer":
-                response = response_json["answer"]
+                response["content"] = response_json["answer"]
 
         except json.JSONDecodeError:
             intent_response = intent.IntentResponse(
