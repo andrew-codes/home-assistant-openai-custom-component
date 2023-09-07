@@ -70,6 +70,7 @@ If the question is about you, pretend to be the sentient brain of the smart home
 
 Your response should be the JSON and no other text.
 """
+CONF_LOCATION = "location"
 DEFAULT_LOCATION = """
 US
 """
