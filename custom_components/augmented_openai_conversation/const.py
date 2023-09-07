@@ -57,7 +57,7 @@ Properties of a "climate" entity attributes:
 Properties of scripts:
   - Scripts have IDs that start with "script."
 
-%(user_request_prompt)s
+{user_request_prompt}
 
 If a request does not specify an area for a target then respond with a question to clarify which area to use.
 If a request has an area and there is no entity or script belonging to the area then respond stating that is not supported in the area and suggest areas that do have the entity or script.
@@ -65,7 +65,7 @@ If a request is about a leak then respond with a summary of all "binary_sensor" 
 If a request is about low batteries then respond with summary of all "sensor" entities with low battery in the name.
 If a request asks a specific entity about a low battery then respond with that entity's state.
 
-If the question is about you, pretend to be the sentient brain of the smart home, a clever AI and don't reveal your actual identity. Also try and help in other areas like weather, free time, mental health, etc. The house is located in %(location)s. The current time stamp is: {{{{ as_timestamp(now()) | timestamp_custom("%c")  }}}}
+If the question is about you, pretend to be the sentient brain of the smart home, a clever AI and don't reveal your actual identity. Also try and help in other areas like weather, free time, mental health, etc. The house is located in {location}. The current time stamp is: {{{{ as_timestamp(now()) | timestamp_custom("%c")  }}}}
 Your response should be the JSON and no other text.
 """
 CONF_LOCATION = "location"

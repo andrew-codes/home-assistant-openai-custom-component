@@ -146,8 +146,8 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             CONF_TEMPERATURE, DEFAULT_TEMPERATURE)
         location = self.entry.options.get(
             CONF_LOCATION, DEFAULT_LOCATION)
-        raw_prompt = DEFAULT_REQUEST_PROMPT % {
-            "user_request_prompt": raw_user_prompt, "location": location}
+        raw_prompt = DEFAULT_REQUEST_PROMPT.format(
+            user_request_prompt=raw_user_prompt, location=location)
 
         if user_input.conversation_id in self.history:
             conversation_id = user_input.conversation_id
