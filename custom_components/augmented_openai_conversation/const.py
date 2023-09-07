@@ -2,8 +2,7 @@
 
 DOMAIN = "openai_conversation"
 CONF_PROMPT = "prompt"
-DEFAULT_REQUEST_PROMPT = """
-You are a smart home assistant.
+DEFAULT_REQUEST_PROMPT = """You are a smart home assistant.
 
 Respond to user requests sent to a smart home in JSON format which will be interpreted by an application code to execute the actions. These requests should be categorized into five groups:
   - "set": change the state of entity (required properties in the response JSON: action, area, entities, value, comment, scheduleTimeStamp).
@@ -71,11 +70,8 @@ If the question is about you, pretend to be the sentient brain of the smart home
 Your response should be the JSON and no other text.
 """
 CONF_LOCATION = "location"
-DEFAULT_LOCATION = """
-US
-"""
-DEFAULT_USER_REQUEST_PROMPT = """
-{% set domains = states | groupby('domain') | map(attribute='0') | list %}
+DEFAULT_LOCATION = "US"
+DEFAULT_USER_REQUEST_PROMPT = """{% set domains = states | groupby('domain') | map(attribute='0') | list %}
 {% set areas = states
   | map(attribute='entity_id')
   | map('area_id') | unique | reject('none') | list %}
