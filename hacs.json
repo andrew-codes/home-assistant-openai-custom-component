@@ -1,7 +1,5 @@
 {
-  "name": "Augmented OpenAI Conversation Agent",
+  "name": "Augmented OpenAI Conversation",
   "content_in_root": false,
-  "country": ["US"],
-  "render_readme": true,
-  "persistent_directory": "userfiles"
+  "render_readme": true
 }

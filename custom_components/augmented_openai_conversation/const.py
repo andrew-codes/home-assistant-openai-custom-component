@@ -1,6 +1,6 @@
 """Constants for the OpenAI Conversation integration."""
 
-DOMAIN = "openai_conversation"
+DOMAIN = "augmented_openai_conversation"
 CONF_PROMPT = "prompt"
 DEFAULT_REQUEST_PROMPT = """You are a smart home assistant.
 
