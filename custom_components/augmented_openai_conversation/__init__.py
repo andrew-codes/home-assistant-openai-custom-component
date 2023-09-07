@@ -146,8 +146,8 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             CONF_TEMPERATURE, DEFAULT_TEMPERATURE)
         location = self.entry.options.get(
             CONF_LOCATION, DEFAULT_LOCATION)
-        raw_prompt = DEFAULT_REQUEST_PROMPT.format(
-            user_request_prompt=raw_user_prompt, location=location)
+        raw_prompt = DEFAULT_REQUEST_PROMPT % {
+            "user_request_prompt": raw_user_prompt, "location": location}
 
         if user_input.conversation_id in self.history:
             conversation_id = user_input.conversation_id
@@ -171,7 +171,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
 
         messages.append({"role": "user", "content": user_input.text})
 
-        _LOGGER.debug("Prompt for %s: %s", model, messages)
+        _LOGGER.info("Prompt for %s: %s", model, messages)
 
         try:
             result = await openai.ChatCompletion.acreate(
@@ -194,7 +194,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 response=intent_response, conversation_id=conversation_id
             )
 
-        _LOGGER.debug("Response %s", result)
+        _LOGGER.info("Response %s", result)
         response = result["choices"][0]["message"]
         try:
             response_json = json.loads(response["content"])
