@@ -232,29 +232,31 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 response["content"] = "Sorry, I don't know how to do that yet."
             elif response_json["action"] == "command":
                 if response_json["scriptID"] != None:
-                    # self.hass.async_create_task(
-                    #     self.hass.services.async_call(
-                    #         "script",
-                    #         response_json["scriptID"]
-                    #     )
-                    # )
-                    response["content"] = response_json["comment"]
-                elif self.hass.services.has_service("script", response_json["scriptID"]) == False:
-                    messages.append(
-                        {"role": "system", "content": CLARIFY_PROMPT.format(type="script", entity_id=response_json["scriptID"])})
-                    messages.append(
-                        {"role": "user", "content": user_input_text})
-                    clarification_result = await openai.ChatCompletion.acreate(
-                        api_key=self.entry.data[CONF_API_KEY],
-                        model=model,
-                        messages=messages,
-                        max_tokens=max_tokens,
-                        top_p=top_p,
-                        temperature=temperature,
-                        user=conversation_id,
-                    )
-                    return await self.process_openai_result(
-                        conversation_id, user_input_text, clarification_result, messages, recursion_index + 1)
+                    [domain, entity_id] = response_json["scriptID"].split(".")
+                    try:
+                        self.hass.async_create_task(
+                            self.hass.services.async_call(
+                                domain,
+                                entity_id
+                            )
+                        )
+                        response["content"] = response_json["comment"]
+                    except:
+                        messages.append(
+                            {"role": "system", "content": CLARIFY_PROMPT.format(type="script", entity_id=response_json["scriptID"])})
+                        messages.append(
+                            {"role": "user", "content": user_input_text})
+                        clarification_result = await openai.ChatCompletion.acreate(
+                            api_key=self.entry.data[CONF_API_KEY],
+                            model=model,
+                            messages=messages,
+                            max_tokens=max_tokens,
+                            top_p=top_p,
+                            temperature=temperature,
+                            user=conversation_id,
+                        )
+                        return await self.process_openai_result(
+                            conversation_id, user_input_text, clarification_result, messages, recursion_index + 1)
                 else:
                     response["content"] = "I'm sorry, I didn't understand that. Try rephrasing your request and try again."
             elif response_json["action"] == "set":
