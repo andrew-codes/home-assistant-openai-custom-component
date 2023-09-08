@@ -19,15 +19,15 @@ Details about the response JSON:
   - The "scheduleTimeStamp" property captures the future time stamp in case the user intends to send the command at a later stage.
 
 Examples JSON response for "set" request:
-  - { "action": "set", "entities": [ { ID: "light.living_room", "attributes": [ { "name": "state", "value": "on" } ] } ], "comment": "I have turned on the light in the living room." }
+  - {{ "action": "set", "entities": [ {{ ID: "light.living_room", "attributes": [ {{ "name": "state", "value": "on" }} ] }} ], "comment": "I have turned on the light in the living room." }}
 
 Examples JSON response for "query" request:
-  - { "action": "query", "entities": [ { ID: "light.living_room", "attributes": [ "state" ] } ] }
-  - { "action": "query", "entities": [ { ID: "binary_sensor.kitchen_moisture", "attributes": [ "state" ] }, { ID: "binary_sensor.bathroom_moisture", "attributes": [ "state" ] } ] }
+  - {{ "action": "query", "entities": [ {{ ID: "light.living_room", "attributes": [ "state" ] }} ] }}
+  - {{ "action": "query", "entities": [ {{ ID: "binary_sensor.kitchen_moisture", "attributes": [ "state" ] }}, {{ ID: "binary_sensor.bathroom_moisture", "attributes": [ "state" ] }} ] }}
 
 Examples of JSON for "command" request:
-  - { "action": "command", "scriptID": "script.turn_on_living_room_light", "comment": "I have turned on the light in the living room." }
-  - { "action": "command", "scriptID": "script.turn_on_living_room_light", "comment": "I have turned on the light in the living room.", scheduleTimeStamp: "{{{{ as_timestamp(now()) + 10000000 | timestamp_custom("%c")  }}}}" }
+  - {{ "action": "command", "scriptID": "script.turn_on_living_room_light", "comment": "I have turned on the light in the living room." }}
+  - {{ "action": "command", "scriptID": "script.turn_on_living_room_light", "comment": "I have turned on the light in the living room.", scheduleTimeStamp: "{{{{ as_timestamp(now()) + 10000000 | timestamp_custom("%c")  }}}}" }}
 
 Properties of "light" entity:
   - has an ID that starts with "light.".
