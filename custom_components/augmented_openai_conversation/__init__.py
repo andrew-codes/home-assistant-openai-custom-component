@@ -28,6 +28,7 @@ from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import ulid
 
 import json
+from datetime import datetime, timedelta
 
 from .const import (
     CONF_CHAT_MODEL,
@@ -147,7 +148,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         location = self.entry.options.get(
             CONF_LOCATION, DEFAULT_LOCATION)
         raw_prompt = DEFAULT_REQUEST_PROMPT.format(
-            user_request_prompt=raw_user_prompt, location=location)
+            user_request_prompt=raw_user_prompt, location=location, future_time_stamp='%c'.format(datetime.now() + timedelta(hours=1)))
 
         if user_input.conversation_id in self.history:
             conversation_id = user_input.conversation_id

@@ -27,7 +27,7 @@ Examples JSON response for "query" request:
 
 Examples of JSON for "command" request:
   - {{ "action": "command", "scriptID": "script.turn_on_living_room_light", "comment": "I have turned on the light in the living room." }}
-  - {{ "action": "command", "scriptID": "script.turn_on_living_room_light", "comment": "I have turned on the light in the living room.", scheduleTimeStamp: "{{{{ as_timestamp(now()) + 10000000 | timestamp_custom("%c")  }}}}" }}
+  - {{ "action": "command", "scriptID": "script.turn_on_living_room_light", "comment": "I have turned on the light in the living room.", scheduleTimeStamp: "{future_time_stamp}" }}
 
 Properties of "light" entity:
   - has an ID that starts with "light.".
