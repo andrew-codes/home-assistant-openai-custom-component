@@ -171,7 +171,8 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
 
         messages.append({"role": "user", "content": user_input.text})
 
-        _LOGGER.info("Prompt for %s: %s", model, messages)
+        _LOGGER.debug("Prompt for %s: %s", model, messages)
+        _LOGGER.info(prompt)
 
         try:
             result = await openai.ChatCompletion.acreate(
@@ -194,12 +195,14 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 response=intent_response, conversation_id=conversation_id
             )
 
-        _LOGGER.info("Response %s", result)
+        _LOGGER.debug("Response %s", result)
+
         response = result["choices"][0]["message"]
+        _LOGGER.info(response)
         try:
             response_json = json.loads(response["content"])
-            if response_json["action"] == "query":
-                response["content"] = response_json["summary"]
+            if response_json["action"] == "query entities" or response_json["action"] == "query area":
+                response["content"] = "Sorry, I don't know how to do that yet."
             elif response_json["action"] == "command" or response_json["action"] == "set":
                 response["content"] = response_json["comment"]
             elif response_json["action"] == "clarify":
@@ -212,7 +215,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 language=user_input.language)
             intent_response.async_set_error(
                 intent.IntentResponseErrorCode.UNKNOWN,
-                f"Sorry, I could not decode the response from the API: {err}",
+                f"Sorry, I could not understand the response from OpenAI: {err}",
             )
             return conversation.ConversationResult(
                 response=intent_response, conversation_id=conversation_id
