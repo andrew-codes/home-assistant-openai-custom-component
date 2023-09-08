@@ -212,7 +212,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
 
     async def process_openai_result(self, conversation_id: any, user_input_text: str, result: any, messages: [] = [], recursion_index: int = 0) -> any:
         if (recursion_index > 1):
-            _LOGGER.info('Max recursion index reached. Returning messages.'')
+            _LOGGER.info('Max recursion index reached. Returning messages.')
             return messages
 
         model = self.entry.options.get(CONF_CHAT_MODEL, DEFAULT_CHAT_MODEL)
