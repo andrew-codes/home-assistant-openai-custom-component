@@ -156,6 +156,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             conversation_id = ulid.ulid()
             try:
                 prompt = self._async_generate_prompt(raw_prompt)
+                _LOGGER.info(prompt)
             except TemplateError as err:
                 _LOGGER.error("Error rendering prompt: %s", err)
                 intent_response = intent.IntentResponse(
@@ -172,7 +173,6 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         messages.append({"role": "user", "content": user_input.text})
 
         _LOGGER.debug("Prompt for %s: %s", model, messages)
-        _LOGGER.info(prompt)
 
         try:
             result = await openai.ChatCompletion.acreate(

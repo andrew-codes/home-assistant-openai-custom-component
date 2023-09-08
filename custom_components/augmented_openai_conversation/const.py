@@ -76,14 +76,14 @@ DEFAULT_LOCATION = "US"
 DEFAULT_USER_REQUEST_PROMPT = """{%- set areas = states
   | map(attribute='entity_id')
   | map('area_id') | unique | reject('none') | list %}
-{%- set all_targets = states | selectattr('domain', 'in', ('script')) | list  %}
-{%- set all_devices = states | selectattr('domain', 'in', ('light', 'switch', 'climate', 'sensor', 'binary_sensor', 'lock', 'media_player')) | list  %}
-{%- set ns = namespace(targets = [], devices = []) %}
-{%- for target in all_targets if area_id(target.entity_id) != none and True %}
-  {%- set ns.targets = ns.targets + [target] %}
+{%- set all_scripts = states | selectattr('domain', 'in', ('script')) | list  %}
+{%- set all_entities = states | selectattr('domain', 'in', ('light', 'switch', 'climate', 'sensor', 'binary_sensor', 'lock', 'media_player')) | list  %}
+{%- set ns = namespace(scripts = [], entities = []) %}
+{%- for script in all_scripts if area_id(script.entity_id) != none and True %}
+  {%- set ns.scripts = ns.scripts + [script] %}
 {%- endfor %}
-{%- for device in all_devices if area_id(device.entity_id) != none and True %}
-  {%- set ns.devices = ns.devices + [device] %}
+{%- for entity in all_entities if area_id(entity.entity_id) != none and True %}
+  {%- set ns.entities = ns.entities + [entity] %}
 {%- endfor %}
 Areas in the home:
 {%- for area in areas %}
@@ -91,7 +91,7 @@ Areas in the home:
 {%- endfor %}
 
 Scripts in the home:
-{%- for entity in ns.targets %}
+{%- for entity in ns.scripts %}
   - "{{ entity.name }}" belongs to "{{ area_name(entity.entity_id) }}"
 {%- endfor %}
 
