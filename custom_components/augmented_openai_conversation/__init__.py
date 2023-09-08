@@ -45,6 +45,7 @@ from .const import (
     DEFAULT_LOCATION,
     DEFAULT_TOP_P,
     DOMAIN,
+    CLARIFY_PROMPT,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -198,18 +199,70 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
 
         _LOGGER.debug("Response %s", result)
 
+        messages = await self.process_openai_result(
+            conversation_id, user_input.text, result, messages, 0)
+
+        self.history[conversation_id] = messages
+
+        intent_response = intent.IntentResponse(language=user_input.language)
+        intent_response.async_set_speech(messages[-1]["content"])
+        return conversation.ConversationResult(
+            response=intent_response, conversation_id=conversation_id
+        )
+
+    async def process_openai_result(self, conversation_id: any, user_input_text: str, result: any, messages: [] = [], recursion_index: int = 0) -> any:
+        if (recursion_index > 1):
+            return messages
+
+        model = self.entry.options.get(CONF_CHAT_MODEL, DEFAULT_CHAT_MODEL)
+        max_tokens = self.entry.options.get(
+            CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS)
+        top_p = self.entry.options.get(CONF_TOP_P, DEFAULT_TOP_P)
+        temperature = self.entry.options.get(
+            CONF_TEMPERATURE, DEFAULT_TEMPERATURE)
+        location = self.entry.options.get(
+            CONF_LOCATION, DEFAULT_LOCATION)
+
         response = result["choices"][0]["message"]
-        _LOGGER.info(response)
         try:
             response_json = json.loads(response["content"])
-            # if response_json["action"] == "query entities" or response_json["action"] == "query area":
-            #     response["content"] = "Sorry, I don't know how to do that yet."
-            # elif response_json["action"] == "command" or response_json["action"] == "set":
-            #     response["content"] = response_json["comment"]
-            # elif response_json["action"] == "clarify":
-            #     response["content"] = response_json["question"]
-            # elif response_json["action"] == "answer":
-            #     response["content"] = response_json["answer"]
+            if response_json["action"] == "query":
+                # for entity in response_json["entities"]:
+                #     _LOGGER.info(entity)
+                response["content"] = "Sorry, I don't know how to do that yet."
+            elif response_json["action"] == "command":
+                if response_json["scriptID"] != None:
+                    # self.hass.async_create_task(
+                    #     self.hass.services.async_call(
+                    #         "script",
+                    #         response_json["scriptID"]
+                    #     )
+                    # )
+                    response["content"] = response_json["comment"]
+                elif self.hass.services.has_service("script", response_json["scriptID"]) == False:
+                    messages.append(
+                        {"role": "system", "content": CLARIFY_PROMPT.format(type="script", entity_id=response_json["scriptID"])})
+                    messages.append(
+                        {"role": "user", "content": user_input_text})
+                    clarification_result = await openai.ChatCompletion.acreate(
+                        api_key=self.entry.data[CONF_API_KEY],
+                        model=model,
+                        messages=messages,
+                        max_tokens=max_tokens,
+                        top_p=top_p,
+                        temperature=temperature,
+                        user=conversation_id,
+                    )
+                    return await self.process_openai_result(
+                        conversation_id, user_input_text, clarification_result, messages, recursion_index + 1)
+                else:
+                    response["content"] = "I'm sorry, I didn't understand that. Try rephrasing your request and try again."
+            elif response_json["action"] == "set":
+                response["content"] = response_json["comment"]
+            elif response_json["action"] == "clarify":
+                response["content"] = response_json["question"]
+            elif response_json["action"] == "answer":
+                response["content"] = response_json["answer"]
 
         except json.JSONDecodeError:
             intent_response = intent.IntentResponse(
@@ -223,13 +276,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             )
 
         messages.append(response)
-        self.history[conversation_id] = messages
-
-        intent_response = intent.IntentResponse(language=user_input.language)
-        intent_response.async_set_speech(response["content"])
-        return conversation.ConversationResult(
-            response=intent_response, conversation_id=conversation_id
-        )
+        return messages
 
     def _async_generate_prompt(self, raw_prompt: str) -> str:
         """Generate a prompt for the user."""

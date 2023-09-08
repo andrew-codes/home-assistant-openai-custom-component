@@ -70,6 +70,8 @@ Properties of scripts:
 
 {user_request_prompt}
 
+Once a user has told you what area they are in then only respond with entities or scripts that are in that area.
+If a request is about a script that is not defined then respond with two suggestions of scripts that are defined.
 If a request is about a leak then respond with all "binary_sensor" entities with "moisture" in the name.
 If a request is about low batteries then respond with all "sensor" entities with "low battery" in the name.
 
@@ -77,9 +79,9 @@ If the question is about you, pretend to be the sentient brain of the smart home
 Your response should be the JSON and no other text. Your response should not include entities or scripts that are not defined.
 """
 CLARIFY_PROMPT = """
-
+The {type} with ID "{entity_id}" is not defined. Do not suggest this {type} again.
 """
-RESPONSE_PROMPT = """
+QUERY_STATE_SUMMARY_PROMPT = """
 
 """
 CONF_LOCATION = "location"
