@@ -234,7 +234,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             elif response_json["action"] == "command":
                 if response_json["scriptID"] != None:
                     [domain, entity_id] = response_json["scriptID"].split(".")
-                    try:
+                    if self.hass.services.has_service(domain, entity_id):
                         self.hass.async_create_task(
                             self.hass.services.async_call(
                                 domain,
@@ -242,7 +242,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                             )
                         )
                         response["content"] = response_json["comment"]
-                    except:
+                    else:
                         messages.append(
                             {"role": "system", "content": CLARIFY_PROMPT.format(type="script", entity_id=response_json["scriptID"])})
                         messages.append(
