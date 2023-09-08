@@ -201,14 +201,14 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         _LOGGER.info(response)
         try:
             response_json = json.loads(response["content"])
-            if response_json["action"] == "query entities" or response_json["action"] == "query area":
-                response["content"] = "Sorry, I don't know how to do that yet."
-            elif response_json["action"] == "command" or response_json["action"] == "set":
-                response["content"] = response_json["comment"]
-            elif response_json["action"] == "clarify":
-                response["content"] = response_json["question"]
-            elif response_json["action"] == "answer":
-                response["content"] = response_json["answer"]
+            # if response_json["action"] == "query entities" or response_json["action"] == "query area":
+            #     response["content"] = "Sorry, I don't know how to do that yet."
+            # elif response_json["action"] == "command" or response_json["action"] == "set":
+            #     response["content"] = response_json["comment"]
+            # elif response_json["action"] == "clarify":
+            #     response["content"] = response_json["question"]
+            # elif response_json["action"] == "answer":
+            #     response["content"] = response_json["answer"]
 
         except json.JSONDecodeError:
             intent_response = intent.IntentResponse(
