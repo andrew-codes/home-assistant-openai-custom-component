@@ -70,8 +70,11 @@ Properties of scripts:
 
 {user_request_prompt}
 
-Once a user has told you what area they are in then only respond with entities or scripts that are in that area.
 If a request is about a script that is not defined then respond with two suggestions of scripts that are defined.
+
+{undefined_scripts}
+
+Once a user has told you what area they are in then only respond with entities or scripts that are in that area.
 If a request is about a leak then respond with all "binary_sensor" entities with "moisture" in the name.
 If a request is about low batteries then respond with all "sensor" entities with "low battery" in the name.
 

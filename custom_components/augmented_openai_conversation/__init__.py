@@ -148,8 +148,10 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             CONF_TEMPERATURE, DEFAULT_TEMPERATURE)
         location = self.entry.options.get(
             CONF_LOCATION, DEFAULT_LOCATION)
+
+        undefined_scripts = ""
         raw_prompt = DEFAULT_REQUEST_PROMPT.format(
-            user_request_prompt=raw_user_prompt, location=location, future_time_stamp='%c'.format(datetime.now() + timedelta(hours=1)))
+            user_request_prompt=raw_user_prompt, location=location, future_time_stamp='%c'.format(datetime.now() + timedelta(hours=1)), undefined_scripts=undefined_scripts)
 
         if user_input.conversation_id in self.history:
             conversation_id = user_input.conversation_id
@@ -197,7 +199,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 response=intent_response, conversation_id=conversation_id
             )
 
-        _LOGGER.debug("Response %s", result)
+        _LOGGER.info("User Input", user_input.text)
 
         messages = await self.process_openai_result(
             conversation_id, user_input.text, result, messages, 0)
@@ -211,6 +213,9 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         )
 
     async def process_openai_result(self, conversation_id: any, user_input_text: str, result: any, messages: [] = [], recursion_index: int = 0) -> any:
+        _LOGGER.info("""Messages: %s
+produced result: %s""", messages, result)
+
         if (recursion_index > 1):
             _LOGGER.info('Max recursion index reached. Returning messages.')
             return messages
@@ -234,7 +239,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             elif response_json["action"] == "command":
                 if response_json["scriptID"] != None:
                     [domain, entity_id] = response_json["scriptID"].split(".")
-                    if self.hass.services.has_service(domain, entity_id):
+                    if self.hass.services.has_service(domain, entity_id) == True:
                         self.hass.async_create_task(
                             self.hass.services.async_call(
                                 domain,
