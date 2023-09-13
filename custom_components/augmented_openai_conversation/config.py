@@ -26,4 +26,4 @@ def get_request_prompt_template() -> str:
 
 
 def get_default_properties_of_the_home_template() -> str:
-    return pkgutil.get_data(__name__, "default_properties_of_the_home_prompt_template.md").decode("utf-8")
+    return pkgutil.get_data(__name__, "default_properties_of_the_home_prompt_template.txt").decode("utf-8")
