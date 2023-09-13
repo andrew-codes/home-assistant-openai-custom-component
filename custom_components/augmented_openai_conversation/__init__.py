@@ -199,8 +199,6 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 response=intent_response, conversation_id=conversation_id
             )
 
-        _LOGGER.info("User Input", user_input.text)
-
         messages = await self.process_openai_result(
             conversation_id, user_input.text, result, messages, 0)
 
@@ -220,65 +218,66 @@ produced result: %s""", messages, result)
             _LOGGER.info('Max recursion index reached. Returning messages.')
             return messages
 
-        model = self.entry.options.get(CONF_CHAT_MODEL, DEFAULT_CHAT_MODEL)
-        max_tokens = self.entry.options.get(
-            CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS)
-        top_p = self.entry.options.get(CONF_TOP_P, DEFAULT_TOP_P)
-        temperature = self.entry.options.get(
-            CONF_TEMPERATURE, DEFAULT_TEMPERATURE)
+        # model = self.entry.options.get(CONF_CHAT_MODEL, DEFAULT_CHAT_MODEL)
+        # max_tokens = self.entry.options.get(
+        #     CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS)
+        # top_p = self.entry.options.get(CONF_TOP_P, DEFAULT_TOP_P)
+        # temperature = self.entry.options.get(
+        #     CONF_TEMPERATURE, DEFAULT_TEMPERATURE)
 
         response = result["choices"][0]["message"]
-        try:
-            response_json = json.loads(response["content"])
-            if response_json["action"] == "query":
-                # for entity in response_json["entities"]:
-                #     _LOGGER.info(entity)
-                response["content"] = "Sorry, I don't know how answer questions about the state of the home."
-            elif response_json["action"] == "command":
-                if response_json["script_id"] == None:
-                    raise Exception("No script ID provided.")
-                else:
-                    [domain, entity_id] = response_json["script_id"].split(".")
-                    if self.hass.services.has_service(domain, entity_id) == False:
-                        raise Exception(
-                            "No service found for {domain} and {entity_id}.")
+        # try:
+        #     response_json = json.loads(response["content"])
+        #     if response_json["action"] == "query":
+        #         # for entity in response_json["entities"]:
+        #         #     _LOGGER.info(entity)
+        #         response["content"] = "Sorry, I don't know how answer questions about the state of the home."
+        #     elif response_json["action"] == "command":
+        #         if response_json["script_id"] == None:
+        #             raise Exception("No script ID provided.")
+        #         else:
+        #             [domain, entity_id] = response_json["script_id"].split(".")
+        #             if self.hass.services.has_service(domain, entity_id) == False:
+        #                 raise Exception(
+        #                     "No service found for {domain} and {entity_id}.")
 
-                    self.hass.async_create_task(
-                        self.hass.services.async_call(
-                            domain,
-                            entity_id
-                        )
-                    )
-                    response["content"] = response_json["comment"]
-            elif response_json["action"] == "set":
-                response["content"] = response_json["comment"]
-            elif response_json["action"] == "clarify":
-                response["content"] = response_json["question"]
-            elif response_json["action"] == "answer":
-                response["content"] = response_json["answer"]
+        #             self.hass.async_create_task(
+        #                 self.hass.services.async_call(
+        #                     domain,
+        #                     entity_id
+        #                 )
+        #             )
+        #             response["content"] = response_json["comment"]
+        #     elif response_json["action"] == "set":
+        #         response["content"] = response_json["comment"]
+        #     elif response_json["action"] == "clarify":
+        #         response["content"] = response_json["question"]
+        #     elif response_json["action"] == "answer":
+        #         response["content"] = response_json["answer"]
 
-        except json.JSONDecodeError as err:
-            _LOGGER.error(err)
-            intent_response = intent.IntentResponse(
-                language=user_input.language)
-            intent_response.async_set_error(
-                intent.IntentResponseErrorCode.UNKNOWN,
-                f"Sorry, I could not understand the response from OpenAI: {err}",
-            )
-            return conversation.ConversationResult(
-                response=intent_response, conversation_id=conversation_id
-            )
-        except Exception as err:
-            _LOGGER.error(err)
-            intent_response = intent.IntentResponse(
-                language=user_input.language)
-            intent_response.async_set_error(
-                intent.IntentResponseErrorCode.UNKNOWN,
-                f"I'm sorry. I didn't understand that. Try rephrasing your request and try again.",
-            )
-            return conversation.ConversationResult(
-                response=intent_response, conversation_id=conversation_id
-            )
+        # except json.JSONDecodeError as err:
+        #     _LOGGER.error(err)
+        #     intent_response = intent.IntentResponse(
+        #         language=user_input.language)
+        #     intent_response.async_set_error(
+        #         intent.IntentResponseErrorCode.UNKNOWN,
+        #         f"Sorry, I could not understand the response from OpenAI: {err}",
+        #     )
+        #     return conversation.ConversationResult(
+        #         response=intent_response, conversation_id=conversation_id
+        #     )
+
+        # except Exception as err:
+        #     _LOGGER.error(err)
+        #     intent_response = intent.IntentResponse(
+        #         language=user_input.language)
+        #     intent_response.async_set_error(
+        #         intent.IntentResponseErrorCode.UNKNOWN,
+        #         f"I'm sorry. I didn't understand that. Try rephrasing your request and try again.",
+        #     )
+        #     return conversation.ConversationResult(
+        #         response=intent_response, conversation_id=conversation_id
+        #     )
 
         messages.append(response)
         return messages
