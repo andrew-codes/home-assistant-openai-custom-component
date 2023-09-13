@@ -30,7 +30,7 @@ from homeassistant.util import ulid
 import json
 from datetime import datetime, timedelta
 
-from .const import (
+from .config import (
     CONF_CHAT_MODEL,
     CONF_MAX_TOKENS,
     CONF_PROMPT,
