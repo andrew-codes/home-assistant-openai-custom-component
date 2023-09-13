@@ -34,7 +34,7 @@ from .config import (
     DEFAULT_TEMPERATURE,
     DEFAULT_TOP_P,
     DOMAIN,
-    get_default_properties_of_the_home_template
+    get_entity_states_prompt
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -45,7 +45,7 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
     }
 )
 
-DEFAULT_PROPERTIES_OF_THE_HOME_TEMPLATE = get_default_properties_of_the_home_template()
+DEFAULT_PROPERTIES_OF_THE_HOME_TEMPLATE = get_entity_states_prompt()
 DEFAULT_OPTIONS = types.MappingProxyType(
     {
         CONF_PROMPT: DEFAULT_PROPERTIES_OF_THE_HOME_TEMPLATE,

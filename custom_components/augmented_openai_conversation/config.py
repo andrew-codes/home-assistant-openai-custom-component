@@ -21,9 +21,13 @@ CONF_TEMPERATURE = "temperature"
 DEFAULT_TEMPERATURE = 0.5
 
 
-def get_request_prompt_template() -> str:
-    return pkgutil.get_data(__name__, "request_prompt_template.md").decode("utf-8")
+def get_setup_prompt() -> str:
+    return pkgutil.get_data(__name__, "prompts/setup_prompt.md.j2").decode("utf-8")
 
 
-def get_default_properties_of_the_home_template() -> str:
-    return pkgutil.get_data(__name__, "default_properties_of_the_home_prompt_template.txt").decode("utf-8")
+def get_user_request_prompt() -> str:
+    return pkgutil.get_data(__name__, "prompts/user_request_prompt.md.j2").decode("utf-8")
+
+
+def get_entity_states_prompt() -> str:
+    return pkgutil.get_data(__name__, "prompts/entity_states_prompt.md.j2").decode("utf-8")

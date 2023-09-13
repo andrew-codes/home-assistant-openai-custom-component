@@ -43,12 +43,9 @@ from .config import (
     DEFAULT_LOCATION,
     DEFAULT_TOP_P,
     DOMAIN,
-    get_request_prompt_template,
-    get_default_properties_of_the_home_template,
+    get_entity_states_prompt,
+    get_setup_prompt,
 )
-
-DEFAULT_USER_REQUEST_PROMPT = get_default_properties_of_the_home_template()
-RAW_REQUEST_PROMPT_TEMPLATE = get_request_prompt_template()
 
 _LOGGER = logging.getLogger(__name__)
 SERVICE_GENERATE_IMAGE = "generate_image"
@@ -140,27 +137,24 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         self, user_input: conversation.ConversationInput
     ) -> conversation.ConversationResult:
         """Process a sentence."""
-        raw_user_prompt = self.entry.options.get(
-            CONF_PROMPT, DEFAULT_USER_REQUEST_PROMPT)
-        model = self.entry.options.get(CONF_CHAT_MODEL, DEFAULT_CHAT_MODEL)
-        max_tokens = self.entry.options.get(
-            CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS)
-        top_p = self.entry.options.get(CONF_TOP_P, DEFAULT_TOP_P)
-        temperature = self.entry.options.get(
-            CONF_TEMPERATURE, DEFAULT_TEMPERATURE)
-        location = self.entry.options.get(
-            CONF_LOCATION, DEFAULT_LOCATION)
-
-        raw_prompt = RAW_REQUEST_PROMPT_TEMPLATE.format(
-            user_properties_of_the_home_prompt=raw_user_prompt, location=location, future_time_stamp='%c'.format(datetime.now() + timedelta(hours=1)))
-
         if user_input.conversation_id in self.history:
             conversation_id = user_input.conversation_id
             messages = self.history[conversation_id]
         else:
             conversation_id = ulid.ulid()
             try:
-                prompt = self._async_generate_prompt(raw_prompt)
+                setup_prompt_template = get_setup_prompt()
+                default_entity_states_template = get_entity_states_prompt()
+                entity_states_prompt = self.entry.options.get(
+                    CONF_PROMPT, default_entity_states_template)
+                entity_states = self._async_generate_prompt(entity_states_prompt)
+                location = self.entry.options.get(
+                    CONF_LOCATION, DEFAULT_LOCATION)
+                prompt = setup_prompt_template.format(
+                    entity_states=entity_states,
+                    location=location,
+                    future_time_stamp='%c'.format(datetime.now() + timedelta(hours=1))
+                )
             except TemplateError as err:
                 _LOGGER.error("Error rendering prompt: %s", err)
                 intent_response = intent.IntentResponse(
@@ -176,18 +170,8 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
 
         messages.append({"role": "user", "content": user_input.text})
 
-        _LOGGER.debug("Prompt for %s: %s", model, messages)
-
         try:
-            result = await openai.ChatCompletion.acreate(
-                api_key=self.entry.data[CONF_API_KEY],
-                model=model,
-                messages=messages,
-                max_tokens=max_tokens,
-                top_p=top_p,
-                temperature=temperature,
-                user=conversation_id,
-            )
+            result = await self.async_send_openai_messages(conversation_id, messages)
         except error.OpenAIError as err:
             intent_response = intent.IntentResponse(
                 language=user_input.language)
@@ -199,18 +183,40 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 response=intent_response, conversation_id=conversation_id
             )
 
-        messages = await self.process_openai_result(
-            conversation_id, user_input.text, result, messages, 0)
+        [response_content, new_messages] = await self.process_openai_result(
+            conversation_id, result, messages, 0)
 
-        self.history[conversation_id] = messages
+        self.history[conversation_id] = messages.concat(new_messages)
 
         intent_response = intent.IntentResponse(language=user_input.language)
-        intent_response.async_set_speech(messages[-1]["content"])
+        intent_response.async_set_speech(response_content)
         return conversation.ConversationResult(
             response=intent_response, conversation_id=conversation_id
         )
 
-    async def process_openai_result(self, conversation_id: any, user_input_text: str, result: any, messages: [] = [], recursion_index: int = 0) -> any:
+    async def async_send_openai_messages(self, conversation_id: any, messages: [] = []) -> any:
+        model = self.entry.options.get(CONF_CHAT_MODEL, DEFAULT_CHAT_MODEL)
+        max_tokens = self.entry.options.get(
+            CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS)
+        top_p = self.entry.options.get(CONF_TOP_P, DEFAULT_TOP_P)
+        temperature = self.entry.options.get(
+            CONF_TEMPERATURE, DEFAULT_TEMPERATURE)
+        _LOGGER.debug("Prompt for %s: %s", model, messages)
+
+        result = await openai.ChatCompletion.acreate(
+            api_key=self.entry.data[CONF_API_KEY],
+            model=model,
+            messages=messages,
+            max_tokens=max_tokens,
+            top_p=top_p,
+            temperature=temperature,
+            user=conversation_id,
+        )
+        _LOGGER.info("Result for %s: %s", model, result)
+
+        return result
+
+    async def process_openai_result(self, conversation_id: any, result: any, messages: [] = [], recursion_index: int = 0) -> [str, any[]]:
         _LOGGER.info("""Messages: %s
 produced result: %s""", messages, result)
 
@@ -218,69 +224,67 @@ produced result: %s""", messages, result)
             _LOGGER.info('Max recursion index reached. Returning messages.')
             return messages
 
-        # model = self.entry.options.get(CONF_CHAT_MODEL, DEFAULT_CHAT_MODEL)
-        # max_tokens = self.entry.options.get(
-        #     CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS)
-        # top_p = self.entry.options.get(CONF_TOP_P, DEFAULT_TOP_P)
-        # temperature = self.entry.options.get(
-        #     CONF_TEMPERATURE, DEFAULT_TEMPERATURE)
-
         response = result["choices"][0]["message"]
-        # try:
-        #     response_json = json.loads(response["content"])
-        #     if response_json["action"] == "query":
-        #         # for entity in response_json["entities"]:
-        #         #     _LOGGER.info(entity)
-        #         response["content"] = "Sorry, I don't know how answer questions about the state of the home."
-        #     elif response_json["action"] == "command":
-        #         if response_json["script_id"] == None:
-        #             raise Exception("No script ID provided.")
-        #         else:
-        #             [domain, entity_id] = response_json["script_id"].split(".")
-        #             if self.hass.services.has_service(domain, entity_id) == False:
-        #                 raise Exception(
-        #                     "No service found for {domain} and {entity_id}.")
+        try:
+            response_json = json.loads(response["content"])
+            if response_json["action"] == "query":
+                # for entity in response_json["entities"]:
+                #     _LOGGER.info(entity)
+                response["content"] = response_json
+            elif response_json["action"] == "command":
+                if response_json["script_id"] == None:
+                    raise Exception("I'm sorry, I'm not sure what to do. Can you rephrase your request?")
+                elif response_json["area"] == None:
+                    raise Exception("I'm sorry, I'm not sure which room to do that in. Can you let me know where in the home you want to do that?")                    
+                else:
+                    [domain, entity_id] = response_json["script_id"].split(".")
+                    if self.hass.services.has_service(domain, entity_id) == False:
+                        raise Exception(
+                            "No service found for {domain} and {entity_id}.")
 
-        #             self.hass.async_create_task(
-        #                 self.hass.services.async_call(
-        #                     domain,
-        #                     entity_id
-        #                 )
-        #             )
-        #             response["content"] = response_json["comment"]
-        #     elif response_json["action"] == "set":
-        #         response["content"] = response_json["comment"]
-        #     elif response_json["action"] == "clarify":
-        #         response["content"] = response_json["question"]
-        #     elif response_json["action"] == "answer":
-        #         response["content"] = response_json["answer"]
+                    self.hass.async_create_task(
+                        self.hass.services.async_call(
+                            domain,
+                            entity_id
+                        )
+                    )
+                    response["content"] = response_json["comment"]
+            elif response_json["action"] == "set":
+                response["content"] = response_json["comment"]
+            elif response_json["action"] == "clarify":
+                response["content"] = response_json["question"]
+            elif response_json["action"] == "answer":
+                response["content"] = response_json["answer"]
 
-        # except json.JSONDecodeError as err:
-        #     _LOGGER.error(err)
-        #     intent_response = intent.IntentResponse(
-        #         language=user_input.language)
-        #     intent_response.async_set_error(
-        #         intent.IntentResponseErrorCode.UNKNOWN,
-        #         f"Sorry, I could not understand the response from OpenAI: {err}",
-        #     )
-        #     return conversation.ConversationResult(
-        #         response=intent_response, conversation_id=conversation_id
-        #     )
+        except json.JSONDecodeError as err:
+            _LOGGER.error(err)
+            intent_response = intent.IntentResponse(
+                language=user_input.language)
+            intent_response.async_set_error(
+                intent.IntentResponseErrorCode.UNKNOWN,
+                f"Sorry, I could not understand the response from OpenAI: {err}",
+            )
+            return conversation.ConversationResult(
+                response=intent_response, conversation_id=conversation_id
+            )
 
-        # except Exception as err:
-        #     _LOGGER.error(err)
-        #     intent_response = intent.IntentResponse(
-        #         language=user_input.language)
-        #     intent_response.async_set_error(
-        #         intent.IntentResponseErrorCode.UNKNOWN,
-        #         f"I'm sorry. I didn't understand that. Try rephrasing your request and try again.",
-        #     )
-        #     return conversation.ConversationResult(
-        #         response=intent_response, conversation_id=conversation_id
-        #     )
+        except Exception as err:
+            _LOGGER.error(err)
+            intent_response = intent.IntentResponse(
+                language=user_input.language)
+            if hasattr(err, 'message'):
+                message = err.messagee
+            else:
+                message = "I'm sorry. I didn't understand that. Try rephrasing your request and try again."
+            intent_response.async_set_error(
+                intent.IntentResponseErrorCode.UNKNOWN,
+                message,
+            )
+            return conversation.ConversationResult(
+                response=intent_response, conversation_id=conversation_id
+            )
 
-        messages.append(response)
-        return messages
+        return [response["content"], [response]]
 
     def _async_generate_prompt(self, raw_prompt: str) -> str:
         """Generate a prompt for the user."""
