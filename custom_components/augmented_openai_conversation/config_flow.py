@@ -21,7 +21,7 @@ from homeassistant.helpers.selector import (
     TemplateSelector,
 )
 
-from .const import (
+from .config import (
     CONF_CHAT_MODEL,
     CONF_MAX_TOKENS,
     CONF_PROMPT,
@@ -31,10 +31,10 @@ from .const import (
     DEFAULT_CHAT_MODEL,
     DEFAULT_MAX_TOKENS,
     DEFAULT_LOCATION,
-    DEFAULT_USER_REQUEST_PROMPT,
     DEFAULT_TEMPERATURE,
     DEFAULT_TOP_P,
     DOMAIN,
+    get_default_properties_of_the_home_template
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -45,9 +45,10 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
     }
 )
 
+DEFAULT_PROPERTIES_OF_THE_HOME_TEMPLATE = get_default_properties_of_the_home_template()
 DEFAULT_OPTIONS = types.MappingProxyType(
     {
-        CONF_PROMPT: DEFAULT_USER_REQUEST_PROMPT,
+        CONF_PROMPT: DEFAULT_PROPERTIES_OF_THE_HOME_TEMPLATE,
         CONF_CHAT_MODEL: DEFAULT_CHAT_MODEL,
         CONF_MAX_TOKENS: DEFAULT_MAX_TOKENS,
         CONF_TOP_P: DEFAULT_TOP_P,
@@ -139,7 +140,7 @@ def openai_config_option_schema(options: MappingProxyType[str, Any]) -> dict:
         vol.Optional(
             CONF_PROMPT,
             description={"suggested_value": options[CONF_PROMPT]},
-            default=DEFAULT_USER_REQUEST_PROMPT,
+            default=DEFAULT_PROPERTIES_OF_THE_HOME_TEMPLATE,
         ): TemplateSelector(),
         vol.Optional(
             CONF_CHAT_MODEL,

@@ -1,0 +1,38 @@
+{%- set excluded_area_ids = ["network_closet"] %}
+{%- set areas = states
+  | map(attribute='entity_id')
+  | map('area_id') | unique | reject('none') | reject("in", excluded_area_ids) | list %}
+{%- set all_scripts = states | selectattr('domain', 'in', ('script')) | list  %}
+{%- set all_entities = states | selectattr('domain', 'in', ('light', 'switch', 'climate', 'sensor', 'binary_sensor', 'lock', 'media_player')) | list  %}
+{%- set ns = namespace(scripts = [], entities = []) %}
+{%- for entity in all_scripts if area_id(entity.entity_id) != none and True %}
+  {%- set ns.scripts = ns.scripts + [entity] %}
+{%- endfor %}
+{%- for entity in all_entities if area_id(entity.entity_id) != none and True %}
+  {%- set ns.entities = ns.entities + [entity] %}
+{%- endfor %}
+
+{%- for area in areas %}
+  {%- set scripts = ns.scripts | selectattr("entity_id", 'in', area_entities(area)) | list %}
+  {%- set entities = ns.entities | selectattr("entity_id", 'in', area_entities(area)) | list %}
+  {%- if (scripts | length > 0) or (entities | length > 0)  %}
+### {{ area_name(area) }}
+
+#### Scripts
+    {% if scripts | length > 0 %}
+      {%- for entity in scripts %}
+  - "{{ entity.entity_id }}"
+      {%- endfor %}
+    {% else %}
+  - No scripts are in the {{ area_name(area) }}
+    {% endif %}
+#### Entities
+    {% if entities | length > 0 %}
+      {%- for entity in entities if area_id(entity.entity_id) == area %}
+  - "{{ entity.entity_id }}"
+      {%- endfor %}
+    {%- else %}
+  - No entities exist in the {{area_name(area)}}
+    {% endif %}
+  {% endif %}
+{%- endfor %}

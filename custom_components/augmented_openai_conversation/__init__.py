@@ -39,14 +39,16 @@ from .const import (
     CONF_TOP_P,
     DEFAULT_CHAT_MODEL,
     DEFAULT_MAX_TOKENS,
-    DEFAULT_REQUEST_PROMPT,
-    DEFAULT_USER_REQUEST_PROMPT,
     DEFAULT_TEMPERATURE,
     DEFAULT_LOCATION,
     DEFAULT_TOP_P,
     DOMAIN,
-    CLARIFY_PROMPT,
+    get_request_prompt_template,
+    get_default_properties_of_the_home_template,
 )
+
+DEFAULT_USER_REQUEST_PROMPT = get_default_properties_of_the_home_template()
+RAW_REQUEST_PROMPT_TEMPLATE = get_request_prompt_template()
 
 _LOGGER = logging.getLogger(__name__)
 SERVICE_GENERATE_IMAGE = "generate_image"
@@ -149,9 +151,8 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         location = self.entry.options.get(
             CONF_LOCATION, DEFAULT_LOCATION)
 
-        undefined_scripts = ""
-        raw_prompt = DEFAULT_REQUEST_PROMPT.format(
-            user_request_prompt=raw_user_prompt, location=location, future_time_stamp='%c'.format(datetime.now() + timedelta(hours=1)), undefined_scripts=undefined_scripts)
+        raw_prompt = RAW_REQUEST_PROMPT_TEMPLATE.format(
+            user_properties_of_the_home_prompt=raw_user_prompt, location=location, future_time_stamp='%c'.format(datetime.now() + timedelta(hours=1)))
 
         if user_input.conversation_id in self.history:
             conversation_id = user_input.conversation_id
@@ -160,7 +161,6 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             conversation_id = ulid.ulid()
             try:
                 prompt = self._async_generate_prompt(raw_prompt)
-                _LOGGER.info(prompt)
             except TemplateError as err:
                 _LOGGER.error("Error rendering prompt: %s", err)
                 intent_response = intent.IntentResponse(
@@ -226,8 +226,6 @@ produced result: %s""", messages, result)
         top_p = self.entry.options.get(CONF_TOP_P, DEFAULT_TOP_P)
         temperature = self.entry.options.get(
             CONF_TEMPERATURE, DEFAULT_TEMPERATURE)
-        location = self.entry.options.get(
-            CONF_LOCATION, DEFAULT_LOCATION)
 
         response = result["choices"][0]["message"]
         try:
@@ -235,36 +233,23 @@ produced result: %s""", messages, result)
             if response_json["action"] == "query":
                 # for entity in response_json["entities"]:
                 #     _LOGGER.info(entity)
-                response["content"] = "Sorry, I don't know how to do that yet."
+                response["content"] = "Sorry, I don't know how answer questions about the state of the home."
             elif response_json["action"] == "command":
-                if response_json["scriptID"] != None:
-                    [domain, entity_id] = response_json["scriptID"].split(".")
-                    if self.hass.services.has_service(domain, entity_id) == True:
-                        self.hass.async_create_task(
-                            self.hass.services.async_call(
-                                domain,
-                                entity_id
-                            )
-                        )
-                        response["content"] = response_json["comment"]
-                    else:
-                        messages.append(
-                            {"role": "system", "content": CLARIFY_PROMPT.format(type="script", entity_id=response_json["scriptID"])})
-                        messages.append(
-                            {"role": "user", "content": user_input_text})
-                        clarification_result = await openai.ChatCompletion.acreate(
-                            api_key=self.entry.data[CONF_API_KEY],
-                            model=model,
-                            messages=messages,
-                            max_tokens=max_tokens,
-                            top_p=top_p,
-                            temperature=temperature,
-                            user=conversation_id,
-                        )
-                        return await self.process_openai_result(
-                            conversation_id, user_input_text, clarification_result, messages, recursion_index + 1)
+                if response_json["script_id"] == None:
+                    raise Exception("No script ID provided.")
                 else:
-                    response["content"] = "I'm sorry, I didn't understand that. Try rephrasing your request and try again."
+                    [domain, entity_id] = response_json["script_id"].split(".")
+                    if self.hass.services.has_service(domain, entity_id) == False:
+                        raise Exception(
+                            "No service found for {domain} and {entity_id}.")
+
+                    self.hass.async_create_task(
+                        self.hass.services.async_call(
+                            domain,
+                            entity_id
+                        )
+                    )
+                    response["content"] = response_json["comment"]
             elif response_json["action"] == "set":
                 response["content"] = response_json["comment"]
             elif response_json["action"] == "clarify":
@@ -272,12 +257,24 @@ produced result: %s""", messages, result)
             elif response_json["action"] == "answer":
                 response["content"] = response_json["answer"]
 
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as err:
+            _LOGGER.error(err)
             intent_response = intent.IntentResponse(
                 language=user_input.language)
             intent_response.async_set_error(
                 intent.IntentResponseErrorCode.UNKNOWN,
                 f"Sorry, I could not understand the response from OpenAI: {err}",
+            )
+            return conversation.ConversationResult(
+                response=intent_response, conversation_id=conversation_id
+            )
+        except Exception as err:
+            _LOGGER.error(err)
+            intent_response = intent.IntentResponse(
+                language=user_input.language)
+            intent_response.async_set_error(
+                intent.IntentResponseErrorCode.UNKNOWN,
+                f"I'm sorry. I didn't understand that. Try rephrasing your request and try again.",
             )
             return conversation.ConversationResult(
                 response=intent_response, conversation_id=conversation_id
