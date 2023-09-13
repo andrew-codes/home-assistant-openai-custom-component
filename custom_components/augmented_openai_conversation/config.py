@@ -1,7 +1,6 @@
-"""Constants for the OpenAI Conversation integration."""
+"""Configuration for the OpenAI Conversation integration."""
 
 import pkgutil
-
 
 DOMAIN = "augmented_openai_conversation"
 CONF_PROMPT = "prompt"
@@ -23,10 +22,8 @@ DEFAULT_TEMPERATURE = 0.5
 
 
 def get_request_prompt_template() -> str:
-    """Get the contents of a markdown file as text."""
     return pkgutil.get_data(__name__, "request_prompt_template.md").decode("utf-8")
 
 
 def get_default_properties_of_the_home_template() -> str:
-    """Get the contents of a markdown file as text."""
-    return pkgutil.get_data(__name__, "default_properties_of_the_home.md").decode("utf-8")
+    return pkgutil.get_data(__name__, "default_properties_of_the_home_prompt_template.md").decode("utf-8")
