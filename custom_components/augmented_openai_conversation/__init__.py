@@ -170,11 +170,12 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                         messages.append(
                             {"role": "user", "content": user_input.text})
 
-                        [content, message] = await self.async_send_openai_messages(conversation_id, messages)
+                        [content, new_messages] = await self.async_send_openai_messages(conversation_id, messages)
+                        intent_data = json.loads(content)
 
-                        messages.append(message)
-                        response = content + "...: entities, set_value, timestamp: {entities}, {value}, {timestamp}".format(
-                            ",".join(content["entities"]), content["set_value"], content["scheduleTimeStamp"])
+                        messages = messages + new_messages
+                        response = intent_data["comment"] + "...: entities, set_value, timestamp: {entities}, {value}, {timestamp}".format(
+                            ",".join(intent_data["entities"]), intent_data["set_value"], intent_data["scheduleTimeStamp"])
 
                     case "command":
                         command_prompt = get_prompt('command')
@@ -185,11 +186,12 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                         messages.append(
                             {"role": "user", "content": user_input.text})
 
-                        [content, message] = await self.async_send_openai_messages(conversation_id, messages)
+                        [content, new_messages] = await self.async_send_openai_messages(conversation_id, messages)
+                        intent_data = json.loads(content)
 
-                        messages.append(message)
-                        response = content["comment"] + "...: area, ID: {area}, {id}".format(
-                            content["area"], content["script_id"])
+                        messages = messages + new_messages
+                        response = intent_data["comment"] + "...: area, ID: {area}, {id}".format(
+                            intent_data["area"], intent_data["script_id"])
 
                     case "query":
                         query_prompt = get_prompt('query')
@@ -201,9 +203,9 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                         messages.append(
                             {"role": "user", "content": user_input.text})
 
-                        [content, message] = await self.async_send_openai_messages(conversation_id, messages)
+                        [content, new_messages] = await self.async_send_openai_messages(conversation_id, messages)
 
-                        messages.append(message)
+                        messages = messages + new_messages
                         response = content
 
                     case "question":
@@ -216,9 +218,9 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                         messages.append(
                             {"role": "user", "content": user_input.text})
 
-                        [content, message] = await self.async_send_openai_messages(conversation_id, messages)
+                        [content, new_messages] = await self.async_send_openai_messages(conversation_id, messages)
 
-                        messages.append(message)
+                        messages = messages + new_messages
                         response = content
 
                     case "clarify_intent":
@@ -259,6 +261,21 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 return conversation.ConversationResult(
                     response=intent_response, conversation_id=conversation_id
                 )
+            except Exception as err:
+                _LOGGER.error(err)
+                intent_response = intent.IntentResponse(
+                    language=user_input.language)
+                if hasattr(err, 'message'):
+                    message = err.messagee
+                else:
+                    message = "I'm sorry. I didn't understand that. Try rephrasing your request and try again."
+                intent_response.async_set_error(
+                    intent.IntentResponseErrorCode.UNKNOWN,
+                    message,
+                )
+                return conversation.ConversationResult(
+                    response=intent_response, conversation_id=conversation_id
+                )
 
             self.history[conversation_id] = messages
 
@@ -291,80 +308,8 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         _LOGGER.info("Result for %s: %s", model, result)
 
         message = result["choices"][0]["message"]
-        content = json.loads(message["content"])
-        return [content, message]
 
-    async def process_openai_result(self, conversation_id: any, result: any, messages: [] = [], recursion_index: int = 0) -> [str, []]:
-        _LOGGER.info("""Messages: %s
-produced result: %s""", messages, result)
-
-        if (recursion_index > 1):
-            _LOGGER.info('Max recursion index reached. Returning messages.')
-            return messages
-
-        response = result
-        try:
-            response_json = json.loads(response["content"])
-            if response_json["action"] == "query":
-                # for entity in response_json["entities"]:
-                #     _LOGGER.info(entity)
-                response["content"] = response_json
-            elif response_json["action"] == "command":
-                if response_json["script_id"] == None:
-                    raise Exception(
-                        "I'm sorry, I'm not sure what to do. Can you rephrase your request?")
-                elif response_json["area"] == None:
-                    raise Exception(
-                        "I'm sorry, I'm not sure which room to do that in. Can you let me know where in the home you want to do that?")
-                else:
-                    [domain, entity_id] = response_json["script_id"].split(".")
-                    if self.hass.services.has_service(domain, entity_id) == False:
-                        raise Exception(
-                            "No service found for {domain} and {entity_id}.")
-
-                    self.hass.async_create_task(
-                        self.hass.services.async_call(
-                            domain,
-                            entity_id
-                        )
-                    )
-                    response["content"] = response_json["comment"]
-            elif response_json["action"] == "set":
-                response["content"] = response_json["comment"]
-            elif response_json["action"] == "clarify":
-                response["content"] = response_json["question"]
-            elif response_json["action"] == "answer":
-                response["content"] = response_json["answer"]
-
-        except json.JSONDecodeError as err:
-            _LOGGER.error(err)
-            intent_response = intent.IntentResponse(
-                language=user_input.language)
-            intent_response.async_set_error(
-                intent.IntentResponseErrorCode.UNKNOWN,
-                f"Sorry, I could not understand the response from OpenAI: {err}",
-            )
-            return conversation.ConversationResult(
-                response=intent_response, conversation_id=conversation_id
-            )
-
-        except Exception as err:
-            _LOGGER.error(err)
-            intent_response = intent.IntentResponse(
-                language=user_input.language)
-            if hasattr(err, 'message'):
-                message = err.messagee
-            else:
-                message = "I'm sorry. I didn't understand that. Try rephrasing your request and try again."
-            intent_response.async_set_error(
-                intent.IntentResponseErrorCode.UNKNOWN,
-                message,
-            )
-            return conversation.ConversationResult(
-                response=intent_response, conversation_id=conversation_id
-            )
-
-        return [response["content"], [response]]
+        return [message["content"], [message]]
 
     def _async_generate_prompt(self, raw_prompt: str) -> str:
         """Generate a prompt for the user."""
