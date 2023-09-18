@@ -168,7 +168,8 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                         [content, message] = await self.async_send_openai_messages(conversation_id, messages)
 
                         messages.append(message)
-                        response = content
+                        response = content + "...: entities, set_value, timestamp: {entities}, {value}, {timestamp}".format(
+                            ",".join(content["entities"]), content["set_value"], content["scheduleTimeStamp"])
 
                     case "command":
                         command_prompt = get_prompt('command')
@@ -183,7 +184,8 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                         [content, message] = await self.async_send_openai_messages(conversation_id, messages)
 
                         messages.append(message)
-                        response = content
+                        response = content["comment"] + "...: area, ID: {area}, {id}".format(
+                            content["area"], content["script_id"])
 
                     case "query":
                         query_prompt = get_prompt('query')
@@ -199,7 +201,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                         [content, message] = await self.async_send_openai_messages(conversation_id, messages)
 
                         messages.append(message)
-                        response = content
+                        response = content["comment"]
 
                     case "question":
                         question_prompt = get_prompt('question')
@@ -215,7 +217,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                         [content, message] = await self.async_send_openai_messages(conversation_id, messages)
 
                         messages.append(message)
-                        response = content
+                        response = content["answer"]
 
                     case "clarify_intent":
                         response = "I'm sorry, I didn't understand that. Can you rephrase your request and try again?"
