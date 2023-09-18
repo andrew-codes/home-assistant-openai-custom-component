@@ -145,23 +145,28 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             try:
                 location = self.entry.options.get(
                     CONF_LOCATION, DEFAULT_LOCATION)
-                intent_prompt = get_prompt('intent_detection').format(location=location, now_formatted='%c'.format(datetime.now()))
+                intent_prompt = get_prompt('intent_detection').format(
+                    location=location, now_formatted='%c'.format(datetime.now()))
                 messages = [{"role": "system", "content": intent_prompt}]
-                discover_intention_messages = messages.concat([{"role": "user", "content": user_input.text}])
-                
+                discover_intention_messages = messages.concat(
+                    [{"role": "user", "content": user_input.text}])
+
                 [content, intent_message] = await self.async_send_openai_messages(conversation_id, discover_intention_messages)
-                
+
                 match content["intent"]:
                     case "set":
                         set_prompt = get_prompt('set')
                         entity_states_prompt = get_prompt('entity_states')
-                        entity_states = self._async_generate_prompt(entity_states_prompt)
-                        prompt = "{prompt}\n\n{additional}".format(prompt=set_prompt, additional=entity_states)
+                        entity_states = self._async_generate_prompt(
+                            entity_states_prompt)
+                        prompt = "{prompt}\n\n{additional}".format(
+                            prompt=set_prompt, additional=entity_states)
                         messages.append({"role": "system", "content": prompt})
-                        messages.append({"role": "user", "content": user_input.text})
-                        
+                        messages.append(
+                            {"role": "user", "content": user_input.text})
+
                         [content, message] = await self.async_send_openai_messages(conversation_id, messages)
-                        
+
                         messages.append(message)
                         response = content
 
@@ -169,38 +174,46 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                         command_prompt = get_prompt('command')
                         scripts_prompt = get_prompt('scripts')
                         scripts = self._async_generate_prompt(scripts_prompt)
-                        prompt = "{prompt}\n\n{additional}".format(prompt=command_prompt, additional=scripts)
+                        prompt = "{prompt}\n\n{additional}".format(
+                            prompt=command_prompt, additional=scripts)
                         messages.append({"role": "system", "content": prompt})
-                        messages.append({"role": "user", "content": user_input.text})
-                        
+                        messages.append(
+                            {"role": "user", "content": user_input.text})
+
                         [content, message] = await self.async_send_openai_messages(conversation_id, messages)
-                        
+
                         messages.append(message)
                         response = content
 
                     case "query":
                         query_prompt = get_prompt('query')
                         entity_states_prompt = get_prompt('entity_states')
-                        entity_states = self._async_generate_prompt(entity_states_prompt)
-                        prompt = "{prompt}\n\n{additional}".format(prompt=query_prompt, additional=entity_states)
+                        entity_states = self._async_generate_prompt(
+                            entity_states_prompt)
+                        prompt = "{prompt}\n\n{additional}".format(
+                            prompt=query_prompt, additional=entity_states)
                         messages.append({"role": "system", "content": prompt})
-                        messages.append({"role": "user", "content": user_input.text})
-                        
+                        messages.append(
+                            {"role": "user", "content": user_input.text})
+
                         [content, message] = await self.async_send_openai_messages(conversation_id, messages)
-                        
+
                         messages.append(message)
                         response = content
 
                     case "question":
                         question_prompt = get_prompt('question')
                         entity_states_prompt = get_prompt('entity_states')
-                        entity_states = self._async_generate_prompt(entity_states_prompt)
-                        prompt = "{prompt}\n\n{additional}".format(prompt=question_prompt, additional=entity_states)
+                        entity_states = self._async_generate_prompt(
+                            entity_states_prompt)
+                        prompt = "{prompt}\n\n{additional}".format(
+                            prompt=question_prompt, additional=entity_states)
                         messages.append({"role": "system", "content": prompt})
-                        messages.append({"role": "user", "content": user_input.text})
-                        
+                        messages.append(
+                            {"role": "user", "content": user_input.text})
+
                         [content, message] = await self.async_send_openai_messages(conversation_id, messages)
-                        
+
                         messages.append(message)
                         response = content
 
@@ -218,7 +231,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 return conversation.ConversationResult(
                     response=intent_response, conversation_id=conversation_id
                 )
-            
+
             except json.JSONDecodeError as err:
                 _LOGGER.error("Error parsing JSON: %s", err)
                 intent_response = intent.IntentResponse(
@@ -231,7 +244,8 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                     response=intent_response, conversation_id=conversation_id
                 )
             except TemplateError as err:
-                _LOGGER.error("Error rendering Home Assistant template: %s", err)
+                _LOGGER.error(
+                    "Error rendering Home Assistant template: %s", err)
                 intent_response = intent.IntentResponse(
                     language=user_input.language)
                 intent_response.async_set_error(
@@ -244,64 +258,13 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
 
             self.history[conversation_id] = messages
 
-            intent_response = intent.IntentResponse(language=user_input.language)
+            intent_response = intent.IntentResponse(
+                language=user_input.language)
             intent_response.async_set_speech(response)
 
             return conversation.ConversationResult(
                 response=intent_response, conversation_id=conversation_id
             )
-
-
-
-        #         setup_prompt_template = get_setup_prompt()
-        #         default_entity_states_template = get_entity_states_prompt()
-        #         entity_states_prompt = self.entry.options.get(
-        #             CONF_PROMPT, default_entity_states_template)
-        #         entity_states = self._async_generate_prompt(entity_states_prompt)
-               
-        #         prompt = setup_prompt_template.format(
-        #             entity_states=entity_states,
-        #             location=location,
-        #             future_time_stamp='%c'.format(datetime.now() + timedelta(hours=1))
-        #         )
-        #     except TemplateError as err:
-        #         _LOGGER.error("Error rendering prompt: %s", err)
-        #         intent_response = intent.IntentResponse(
-        #             language=user_input.language)
-        #         intent_response.async_set_error(
-        #             intent.IntentResponseErrorCode.UNKNOWN,
-        #             f"Sorry, I had a problem with my template: {err}",
-        #         )
-        #         return conversation.ConversationResult(
-        #             response=intent_response, conversation_id=conversation_id
-        #         )
-        #     messages = [{"role": "system", "content": prompt}]
-
-        # messages.append({"role": "user", "content": user_input.text})
-
-        # try:
-        #     result = await self.async_send_openai_messages(conversation_id, messages)
-        # except error.OpenAIError as err:
-        #     intent_response = intent.IntentResponse(
-        #         language=user_input.language)
-        #     intent_response.async_set_error(
-        #         intent.IntentResponseErrorCode.UNKNOWN,
-        #         f"Sorry, I had a problem talking to OpenAI: {err}",
-        #     )
-        #     return conversation.ConversationResult(
-        #         response=intent_response, conversation_id=conversation_id
-        #     )
-
-        # [response_content, new_messages] = await self.process_openai_result(
-        #     conversation_id, result, messages, 0)
-
-        # self.history[conversation_id] = messages.concat(new_messages)
-
-        # intent_response = intent.IntentResponse(language=user_input.language)
-        # intent_response.async_set_speech(response_content)
-        # return conversation.ConversationResult(
-        #     response=intent_response, conversation_id=conversation_id
-        # )
 
     async def async_send_openai_messages(self, conversation_id: any, messages: [] = []) -> any:
         model = self.entry.options.get(CONF_CHAT_MODEL, DEFAULT_CHAT_MODEL)
@@ -327,7 +290,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         content = json.loads(message["content"])
         return [content, message]
 
-    async def process_openai_result(self, conversation_id: any, result: any, messages: [] = [], recursion_index: int = 0) -> [str, any[]]:
+    async def process_openai_result(self, conversation_id: any, result: any, messages: [] = [], recursion_index: int = 0) -> [str, []]:
         _LOGGER.info("""Messages: %s
 produced result: %s""", messages, result)
 
@@ -344,9 +307,11 @@ produced result: %s""", messages, result)
                 response["content"] = response_json
             elif response_json["action"] == "command":
                 if response_json["script_id"] == None:
-                    raise Exception("I'm sorry, I'm not sure what to do. Can you rephrase your request?")
+                    raise Exception(
+                        "I'm sorry, I'm not sure what to do. Can you rephrase your request?")
                 elif response_json["area"] == None:
-                    raise Exception("I'm sorry, I'm not sure which room to do that in. Can you let me know where in the home you want to do that?")                    
+                    raise Exception(
+                        "I'm sorry, I'm not sure which room to do that in. Can you let me know where in the home you want to do that?")
                 else:
                     [domain, entity_id] = response_json["script_id"].split(".")
                     if self.hass.services.has_service(domain, entity_id) == False:
