@@ -204,7 +204,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                         [content, message] = await self.async_send_openai_messages(conversation_id, messages)
 
                         messages.append(message)
-                        response = content["comment"]
+                        response = content
 
                     case "question":
                         question_prompt = get_prompt('question')
@@ -219,7 +219,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                         [content, message] = await self.async_send_openai_messages(conversation_id, messages)
 
                         messages.append(message)
-                        response = content["answer"]
+                        response = content
 
                     case "clarify_intent":
                         response = "I'm sorry, I didn't understand that. Can you rephrase your request and try again?"
