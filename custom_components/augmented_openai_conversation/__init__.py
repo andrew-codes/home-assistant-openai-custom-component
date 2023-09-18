@@ -148,8 +148,8 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 intent_prompt = get_prompt('intent_detection').format(
                     location=location, now_formatted='%c'.format(datetime.now()))
                 messages = [{"role": "system", "content": intent_prompt}]
-                discover_intention_messages = messages.concat(
-                    [{"role": "user", "content": user_input.text}])
+                discover_intention_messages = messages + \
+                    [{"role": "user", "content": user_input.text}]
 
                 [content, intent_message] = await self.async_send_openai_messages(conversation_id, discover_intention_messages)
 
