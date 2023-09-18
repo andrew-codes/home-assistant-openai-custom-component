@@ -158,8 +158,9 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                     [{"role": "user", "content": user_input.text}]
 
                 [content, intent_message] = await self.async_send_openai_messages("intent_detection", discover_intention_messages)
+                intent_data = json.loads(content)
 
-                match content["intent"]:
+                match intent_data["intent"]:
                     case "set":
                         set_prompt = get_prompt('set')
                         entity_states_prompt = get_prompt('entity_states')
