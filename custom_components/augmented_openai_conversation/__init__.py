@@ -145,13 +145,19 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             try:
                 location = self.entry.options.get(
                     CONF_LOCATION, DEFAULT_LOCATION)
-                intent_prompt = get_prompt('intent_detection').format(
+                persona_prompt = get_prompt('persona')
+                intent_detection_prompt = get_prompt('intent_detection').format(
                     location=location, now_formatted='%c'.format(datetime.now()))
+                properties_of_home_prompt = get_prompt("properties_of_home")
+
+                intent_prompt = persona_prompt + "\n\n" + \
+                    intent_detection_prompt + "\n\n" + properties_of_home_prompt
+
                 messages = [{"role": "system", "content": intent_prompt}]
                 discover_intention_messages = messages + \
                     [{"role": "user", "content": user_input.text}]
 
-                [content, intent_message] = await self.async_send_openai_messages(conversation_id, discover_intention_messages)
+                [content, intent_message] = await self.async_send_openai_messages("intent_detection", discover_intention_messages)
 
                 match content["intent"]:
                     case "set":
@@ -159,8 +165,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                         entity_states_prompt = get_prompt('entity_states')
                         entity_states = self._async_generate_prompt(
                             entity_states_prompt)
-                        prompt = "{prompt}\n\n{additional}".format(
-                            prompt=set_prompt, additional=entity_states)
+                        prompt = persona_prompt + "\n\n" + set_prompt + "\n\n" + entity_states
                         messages.append({"role": "system", "content": prompt})
                         messages.append(
                             {"role": "user", "content": user_input.text})
@@ -175,8 +180,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                         command_prompt = get_prompt('command')
                         scripts_prompt = get_prompt('scripts')
                         scripts = self._async_generate_prompt(scripts_prompt)
-                        prompt = "{prompt}\n\n{additional}".format(
-                            prompt=command_prompt, additional=scripts)
+                        prompt = persona_prompt + "\n\n" + command_prompt + "\n\n" + scripts
                         messages.append({"role": "system", "content": prompt})
                         messages.append(
                             {"role": "user", "content": user_input.text})
@@ -192,8 +196,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                         entity_states_prompt = get_prompt('entity_states')
                         entity_states = self._async_generate_prompt(
                             entity_states_prompt)
-                        prompt = "{prompt}\n\n{additional}".format(
-                            prompt=query_prompt, additional=entity_states)
+                        prompt = persona_prompt + "\n\n" + query_prompt + "\n\n" + entity_states
                         messages.append({"role": "system", "content": prompt})
                         messages.append(
                             {"role": "user", "content": user_input.text})
@@ -208,8 +211,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                         entity_states_prompt = get_prompt('entity_states')
                         entity_states = self._async_generate_prompt(
                             entity_states_prompt)
-                        prompt = "{prompt}\n\n{additional}".format(
-                            prompt=question_prompt, additional=entity_states)
+                        prompt = persona_prompt + "\n\n" + question_prompt + "\n\n" + entity_states
                         messages.append({"role": "system", "content": prompt})
                         messages.append(
                             {"role": "user", "content": user_input.text})
