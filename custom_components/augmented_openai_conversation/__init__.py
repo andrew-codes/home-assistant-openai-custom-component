@@ -260,7 +260,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
 
             intent_response = intent.IntentResponse(
                 language=user_input.language)
-            intent_response.async_set_speech(response)
+            intent_response.async_set_speech(print(response))
 
             return conversation.ConversationResult(
                 response=intent_response, conversation_id=conversation_id
