@@ -1,0 +1,35 @@
+{%- set excluded_area_ids = ["network_closet"] %}
+{%- set excluded_script_ids = [] %}
+{%- set areas = states
+  | map(attribute='entity_id')
+  | map('area_id') | unique | reject('none') | reject("in", excluded_area_ids) | list %}
+{%- set all_scripts = states | selectattr('domain', 'in', ('script')) | list  %}
+{%- set ns = namespace(scripts = []) %}
+{%- for script in all_scripts if area_id(script.entity_id) != none and script.entity_id not in excluded_script_ids %}
+  {%- set ns.scripts = ns.scripts + [script] %}
+{%- endfor %}
+
+## Scripts found in the Home
+
+The home consists of the following areas:
+
+{%- for area in areas %}
+- "{{ area }}"
+{%- endfor %}
+
+## Scripts by Area
+Each area will detail the scripts that are currently in that area. If no scripts are in the area, it will be noted.
+
+Scripts will be listed in list format.
+
+{%- for area in areas %}
+  {% set scripts = ns.scripts | selectattr("entity_id", 'in', area_entities(area)) | list %}
+### {{ area }}
+  {% if scripts | length > 0 %}
+    {%- for script in scripts if area_id(script.entity_id) == area %}
+- "{{ script.entity_id }}"
+    {%- endfor %}
+  {%- else %}
+No scripts exist in the "{{area}}".
+  {%- endif %}
+{%- endfor %}

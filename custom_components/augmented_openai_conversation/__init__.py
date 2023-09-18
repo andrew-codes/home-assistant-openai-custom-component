@@ -33,8 +33,9 @@ from datetime import datetime, timedelta
 from .config import (
     CONF_CHAT_MODEL,
     CONF_MAX_TOKENS,
-    CONF_PROMPT,
     CONF_TEMPERATURE,
+    CONF_ENTITY_STATE_PROMPT,
+    CONF_SCRIPTS_PROMPT,
     CONF_LOCATION,
     CONF_TOP_P,
     DEFAULT_CHAT_MODEL,
@@ -43,8 +44,7 @@ from .config import (
     DEFAULT_LOCATION,
     DEFAULT_TOP_P,
     DOMAIN,
-    get_entity_states_prompt,
-    get_setup_prompt,
+    get_prompt,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -143,56 +143,165 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         else:
             conversation_id = ulid.ulid()
             try:
-                setup_prompt_template = get_setup_prompt()
-                default_entity_states_template = get_entity_states_prompt()
-                entity_states_prompt = self.entry.options.get(
-                    CONF_PROMPT, default_entity_states_template)
-                entity_states = self._async_generate_prompt(entity_states_prompt)
                 location = self.entry.options.get(
                     CONF_LOCATION, DEFAULT_LOCATION)
-                prompt = setup_prompt_template.format(
-                    entity_states=entity_states,
-                    location=location,
-                    future_time_stamp='%c'.format(datetime.now() + timedelta(hours=1))
-                )
-            except TemplateError as err:
-                _LOGGER.error("Error rendering prompt: %s", err)
+                intent_prompt = get_prompt('intent_detection').format(location=location, now_formatted='%c'.format(datetime.now()))
+                messages = [{"role": "system", "content": intent_prompt}]
+                discover_intention_messages = messages.concat([{"role": "user", "content": user_input.text}])
+                
+                [content, intent_message] = await self.async_send_openai_messages(conversation_id, discover_intention_messages)
+                
+                match content["intent"]:
+                    case "set":
+                        set_prompt = get_prompt('set')
+                        entity_states_prompt = get_prompt('entity_states')
+                        entity_states = self._async_generate_prompt(entity_states_prompt)
+                        prompt = "{prompt}\n\n{additional}".format(prompt=set_prompt, additional=entity_states)
+                        messages.append({"role": "system", "content": prompt})
+                        messages.append({"role": "user", "content": user_input.text})
+                        
+                        [content, message] = await self.async_send_openai_messages(conversation_id, messages)
+                        
+                        messages.append(message)
+                        response = content
+
+                    case "command":
+                        command_prompt = get_prompt('command')
+                        scripts_prompt = get_prompt('scripts')
+                        scripts = self._async_generate_prompt(scripts_prompt)
+                        prompt = "{prompt}\n\n{additional}".format(prompt=command_prompt, additional=scripts)
+                        messages.append({"role": "system", "content": prompt})
+                        messages.append({"role": "user", "content": user_input.text})
+                        
+                        [content, message] = await self.async_send_openai_messages(conversation_id, messages)
+                        
+                        messages.append(message)
+                        response = content
+
+                    case "query":
+                        query_prompt = get_prompt('query')
+                        entity_states_prompt = get_prompt('entity_states')
+                        entity_states = self._async_generate_prompt(entity_states_prompt)
+                        prompt = "{prompt}\n\n{additional}".format(prompt=query_prompt, additional=entity_states)
+                        messages.append({"role": "system", "content": prompt})
+                        messages.append({"role": "user", "content": user_input.text})
+                        
+                        [content, message] = await self.async_send_openai_messages(conversation_id, messages)
+                        
+                        messages.append(message)
+                        response = content
+
+                    case "question":
+                        question_prompt = get_prompt('question')
+                        entity_states_prompt = get_prompt('entity_states')
+                        entity_states = self._async_generate_prompt(entity_states_prompt)
+                        prompt = "{prompt}\n\n{additional}".format(prompt=question_prompt, additional=entity_states)
+                        messages.append({"role": "system", "content": prompt})
+                        messages.append({"role": "user", "content": user_input.text})
+                        
+                        [content, message] = await self.async_send_openai_messages(conversation_id, messages)
+                        
+                        messages.append(message)
+                        response = content
+
+                    case "clarify_intent":
+                        response = "I'm sorry, I didn't understand that. Can you rephrase your request and try again?"
+
+            except error.OpenAIError as err:
+                _LOGGER.error("Network error rendering prompt: %s", err)
                 intent_response = intent.IntentResponse(
                     language=user_input.language)
                 intent_response.async_set_error(
                     intent.IntentResponseErrorCode.UNKNOWN,
-                    f"Sorry, I had a problem with my template: {err}",
+                    f"Sorry, I had a problem talking to OpenAI.",
                 )
                 return conversation.ConversationResult(
                     response=intent_response, conversation_id=conversation_id
                 )
-            messages = [{"role": "system", "content": prompt}]
+            
+            except json.JSONDecodeError as err:
+                _LOGGER.error("Error parsing JSON: %s", err)
+                intent_response = intent.IntentResponse(
+                    language=user_input.language)
+                intent_response.async_set_error(
+                    intent.IntentResponseErrorCode.UNKNOWN,
+                    f"Sorry, I could not understand the response from OpenAI",
+                )
+                return conversation.ConversationResult(
+                    response=intent_response, conversation_id=conversation_id
+                )
+            except TemplateError as err:
+                _LOGGER.error("Error rendering Home Assistant template: %s", err)
+                intent_response = intent.IntentResponse(
+                    language=user_input.language)
+                intent_response.async_set_error(
+                    intent.IntentResponseErrorCode.UNKNOWN,
+                    f"Sorry, I'm having trouble completing your request.",
+                )
+                return conversation.ConversationResult(
+                    response=intent_response, conversation_id=conversation_id
+                )
 
-        messages.append({"role": "user", "content": user_input.text})
+            self.history[conversation_id] = messages
 
-        try:
-            result = await self.async_send_openai_messages(conversation_id, messages)
-        except error.OpenAIError as err:
-            intent_response = intent.IntentResponse(
-                language=user_input.language)
-            intent_response.async_set_error(
-                intent.IntentResponseErrorCode.UNKNOWN,
-                f"Sorry, I had a problem talking to OpenAI: {err}",
-            )
+            intent_response = intent.IntentResponse(language=user_input.language)
+            intent_response.async_set_speech(response)
+
             return conversation.ConversationResult(
                 response=intent_response, conversation_id=conversation_id
             )
 
-        [response_content, new_messages] = await self.process_openai_result(
-            conversation_id, result, messages, 0)
 
-        self.history[conversation_id] = messages.concat(new_messages)
 
-        intent_response = intent.IntentResponse(language=user_input.language)
-        intent_response.async_set_speech(response_content)
-        return conversation.ConversationResult(
-            response=intent_response, conversation_id=conversation_id
-        )
+        #         setup_prompt_template = get_setup_prompt()
+        #         default_entity_states_template = get_entity_states_prompt()
+        #         entity_states_prompt = self.entry.options.get(
+        #             CONF_PROMPT, default_entity_states_template)
+        #         entity_states = self._async_generate_prompt(entity_states_prompt)
+               
+        #         prompt = setup_prompt_template.format(
+        #             entity_states=entity_states,
+        #             location=location,
+        #             future_time_stamp='%c'.format(datetime.now() + timedelta(hours=1))
+        #         )
+        #     except TemplateError as err:
+        #         _LOGGER.error("Error rendering prompt: %s", err)
+        #         intent_response = intent.IntentResponse(
+        #             language=user_input.language)
+        #         intent_response.async_set_error(
+        #             intent.IntentResponseErrorCode.UNKNOWN,
+        #             f"Sorry, I had a problem with my template: {err}",
+        #         )
+        #         return conversation.ConversationResult(
+        #             response=intent_response, conversation_id=conversation_id
+        #         )
+        #     messages = [{"role": "system", "content": prompt}]
+
+        # messages.append({"role": "user", "content": user_input.text})
+
+        # try:
+        #     result = await self.async_send_openai_messages(conversation_id, messages)
+        # except error.OpenAIError as err:
+        #     intent_response = intent.IntentResponse(
+        #         language=user_input.language)
+        #     intent_response.async_set_error(
+        #         intent.IntentResponseErrorCode.UNKNOWN,
+        #         f"Sorry, I had a problem talking to OpenAI: {err}",
+        #     )
+        #     return conversation.ConversationResult(
+        #         response=intent_response, conversation_id=conversation_id
+        #     )
+
+        # [response_content, new_messages] = await self.process_openai_result(
+        #     conversation_id, result, messages, 0)
+
+        # self.history[conversation_id] = messages.concat(new_messages)
+
+        # intent_response = intent.IntentResponse(language=user_input.language)
+        # intent_response.async_set_speech(response_content)
+        # return conversation.ConversationResult(
+        #     response=intent_response, conversation_id=conversation_id
+        # )
 
     async def async_send_openai_messages(self, conversation_id: any, messages: [] = []) -> any:
         model = self.entry.options.get(CONF_CHAT_MODEL, DEFAULT_CHAT_MODEL)
@@ -214,7 +323,9 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         )
         _LOGGER.info("Result for %s: %s", model, result)
 
-        return result
+        message = result["choices"][0]["message"]
+        content = json.loads(message["content"])
+        return [content, message]
 
     async def process_openai_result(self, conversation_id: any, result: any, messages: [] = [], recursion_index: int = 0) -> [str, any[]]:
         _LOGGER.info("""Messages: %s
@@ -224,7 +335,7 @@ produced result: %s""", messages, result)
             _LOGGER.info('Max recursion index reached. Returning messages.')
             return messages
 
-        response = result["choices"][0]["message"]
+        response = result
         try:
             response_json = json.loads(response["content"])
             if response_json["action"] == "query":

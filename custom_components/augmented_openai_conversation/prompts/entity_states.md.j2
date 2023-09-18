@@ -1,0 +1,42 @@
+{%- set excluded_area_ids = ["network_closet"] %}
+{%- set excluded_entity_ids = [] %}
+{%- set areas = states
+  | map(attribute='entity_id')
+  | map('area_id') | unique | reject('none') | reject("in", excluded_area_ids) | list %}
+{%- set all_entities = states | selectattr('domain', 'in', ('light', 'switch', 'climate', 'sensor', 'binary_sensor', 'lock', 'media_player')) | list  %}
+{%- set ns = namespace(scripts = [], entities = []) %}
+{%- for entity in all_entities if area_id(entity.entity_id) != none and entity.entity_id not in excluded_entity_ids %}
+  {%- set ns.entities = ns.entities + [entity] %}
+{%- endfor %}
+
+## Entities found in the Home
+
+The home consists of the following areas:
+
+{%- for area in areas %}
+- "{{ area }}"
+{%- endfor %}
+
+## Entity States by Area
+Each area will detail the entities that are currently in that area. If no entities are in the area, it will be noted.
+
+Entites will be listed in a table. The format of the list of entities is as follows:
+
+| Entity ID |State | Attributes |
+|:----------|:-----|:-----------|
+| `light.garage` | `on` | `brightness: 255, color_temp: 153, friendly_name: Garage Light, supported_features: 41` |
+| `light.porch` | `off` | `brightness: 255, color_temp: 153, friendly_name: Porch Light, supported_features: 41` |
+
+{%- for area in areas %}
+  {% set entities = ns.entities | selectattr("entity_id", 'in', area_entities(area)) | list %}
+### {{ area }}
+  {% if entities | length > 0 %}
+| Entity ID |State | Attributes |
+|:----------|:-----|:-----------|
+    {%- for entity in entities if area_id(entity.entity_id) == area %}
+| `{{ entity.entity_id }}` | `{{ entity.state }}` | `{{ entity.attributes | tojson | replace('"', '') | replace('{', '') | replace('}', '') | replace(',', ', ') | replace(':', ': ') | replace('true', 'True') | replace('false', 'False') | replace('null', 'None') }}` |
+    {%- endfor %}
+  {%- else %}
+No entities exist in the "{{area}}".
+  {%- endif %}
+{%- endfor %}

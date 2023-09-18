@@ -24,7 +24,8 @@ from homeassistant.helpers.selector import (
 from .config import (
     CONF_CHAT_MODEL,
     CONF_MAX_TOKENS,
-    CONF_PROMPT,
+    CONF_ENTITY_STATE_PROMPT,
+    CONF_SCRIPTS_PROMPT,
     CONF_TEMPERATURE,
     CONF_LOCATION,
     CONF_TOP_P,
@@ -34,7 +35,7 @@ from .config import (
     DEFAULT_TEMPERATURE,
     DEFAULT_TOP_P,
     DOMAIN,
-    get_entity_states_prompt
+    get_prompt
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -45,17 +46,19 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
     }
 )
 
-DEFAULT_PROPERTIES_OF_THE_HOME_TEMPLATE = get_entity_states_prompt()
-DEFAULT_OPTIONS = types.MappingProxyType(
-    {
-        CONF_PROMPT: DEFAULT_PROPERTIES_OF_THE_HOME_TEMPLATE,
-        CONF_CHAT_MODEL: DEFAULT_CHAT_MODEL,
-        CONF_MAX_TOKENS: DEFAULT_MAX_TOKENS,
-        CONF_TOP_P: DEFAULT_TOP_P,
-        CONF_TEMPERATURE: DEFAULT_TEMPERATURE,
-        CONF_LOCATION: DEFAULT_LOCATION,
-    }
-)
+
+def get_default_options() -> dict[str, Any]:
+    return types.MappingProxyType(
+        {
+            CONF_ENTITY_STATE_PROMPT: get_prompt("entity_states"),
+            CONF_SCRIPTS_PROMPT: get_prompt("scripts"),
+            CONF_CHAT_MODEL: DEFAULT_CHAT_MODEL,
+            CONF_MAX_TOKENS: DEFAULT_MAX_TOKENS,
+            CONF_TOP_P: DEFAULT_TOP_P,
+            CONF_TEMPERATURE: DEFAULT_TEMPERATURE,
+            CONF_LOCATION: DEFAULT_LOCATION,
+        }
+    )
 
 
 async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> None:
@@ -129,8 +132,11 @@ class OptionsFlow(config_entries.OptionsFlow):
 
 def openai_config_option_schema(options: MappingProxyType[str, Any]) -> dict:
     """Return a schema for OpenAI completion options."""
+    DEFAULT_OPTIONS = get_default_options()
+
     if not options:
         options = DEFAULT_OPTIONS
+
     return {
         vol.Optional(
             CONF_LOCATION,
@@ -138,9 +144,14 @@ def openai_config_option_schema(options: MappingProxyType[str, Any]) -> dict:
             default=DEFAULT_LOCATION,
         ): str,
         vol.Optional(
-            CONF_PROMPT,
-            description={"suggested_value": options[CONF_PROMPT]},
-            default=DEFAULT_PROPERTIES_OF_THE_HOME_TEMPLATE,
+            CONF_ENTITY_STATE_PROMPT,
+            description={"suggested_value": options[CONF_ENTITY_STATE_PROMPT]},
+            default=DEFAULT_OPTIONS[CONF_ENTITY_STATE_PROMPT],
+        ): TemplateSelector(),
+        vol.Optional(
+            CONF_SCRIPTS_PROMPT,
+            description={"suggested_value": options[CONF_SCRIPTS_PROMPT]},
+            default=DEFAULT_OPTIONS[CONF_SCRIPTS_PROMPT],
         ): TemplateSelector(),
         vol.Optional(
             CONF_CHAT_MODEL,

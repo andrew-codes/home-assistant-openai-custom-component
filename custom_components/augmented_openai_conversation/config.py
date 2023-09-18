@@ -3,7 +3,9 @@
 import pkgutil
 
 DOMAIN = "augmented_openai_conversation"
-CONF_PROMPT = "prompt"
+
+CONF_ENTITY_STATE_PROMPT = "entity_state_prompt"
+CONF_SCRIPTS_PROMPT = "scripts_prompt"
 
 CONF_LOCATION = "location"
 DEFAULT_LOCATION = "US"
@@ -21,13 +23,8 @@ CONF_TEMPERATURE = "temperature"
 DEFAULT_TEMPERATURE = 0.5
 
 
-def get_setup_prompt() -> str:
-    return pkgutil.get_data(__name__, "prompts/setup_prompt.md.j2").decode("utf-8")
-
-
-def get_user_request_prompt() -> str:
-    return pkgutil.get_data(__name__, "prompts/user_request_prompt.md.j2").decode("utf-8")
-
-
-def get_entity_states_prompt() -> str:
-    return pkgutil.get_data(__name__, "prompts/entity_states_prompt.md.j2").decode("utf-8")
+def get_prompt(prompt_file_name: str) -> str:
+    try:
+        return pkgutil.get_data(__name__, "prompts/{prompt_file_name}.md".format(prompt_file_name=prompt_file_name)).decode("utf-8")
+    except FileNotFoundError:
+        return pkgutil.get_data(__name__, "prompts/{prompt_file_name}.md.j2".format(prompt_file_name=prompt_file_name)).decode("utf-8")
