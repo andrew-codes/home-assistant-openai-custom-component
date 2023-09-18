@@ -261,21 +261,21 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 return conversation.ConversationResult(
                     response=intent_response, conversation_id=conversation_id
                 )
-            except Exception as err:
-                _LOGGER.error(err)
-                intent_response = intent.IntentResponse(
-                    language=user_input.language)
-                if hasattr(err, 'message'):
-                    message = err.messagee
-                else:
-                    message = "I'm sorry. I didn't understand that. Try rephrasing your request and try again."
-                intent_response.async_set_error(
-                    intent.IntentResponseErrorCode.UNKNOWN,
-                    message,
-                )
-                return conversation.ConversationResult(
-                    response=intent_response, conversation_id=conversation_id
-                )
+            # except Exception as err:
+            #     _LOGGER.error(err)
+            #     intent_response = intent.IntentResponse(
+            #         language=user_input.language)
+            #     if hasattr(err, 'message'):
+            #         message = err.messagee
+            #     else:
+            #         message = "I'm sorry. I'm having trouble at the moment. Try asking me again in a little bit."
+            #     intent_response.async_set_error(
+            #         intent.IntentResponseErrorCode.UNKNOWN,
+            #         message,
+            #     )
+            #     return conversation.ConversationResult(
+            #         response=intent_response, conversation_id=conversation_id
+            #     )
 
             self.history[conversation_id] = messages
 
