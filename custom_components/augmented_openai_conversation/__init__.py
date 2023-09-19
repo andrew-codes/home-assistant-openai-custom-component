@@ -53,38 +53,6 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up OpenAI Conversation."""
-
-    async def render_image(call: ServiceCall) -> ServiceResponse:
-        """Render an image with dall-e."""
-        try:
-            response = await openai.Image.acreate(
-                api_key=hass.data[DOMAIN][call.data["config_entry"]],
-                prompt=call.data["prompt"],
-                n=1,
-                size=f'{call.data["size"]}x{call.data["size"]}',
-            )
-        except error.OpenAIError as err:
-            raise HomeAssistantError(f"Error generating image: {err}") from err
-
-        return response["data"][0]
-
-    hass.services.async_register(
-        DOMAIN,
-        SERVICE_GENERATE_IMAGE,
-        render_image,
-        schema=vol.Schema(
-            {
-                vol.Required("config_entry"): selector.ConfigEntrySelector(
-                    {
-                        "integration": DOMAIN,
-                    }
-                ),
-                vol.Required("prompt"): cv.string,
-                vol.Optional("size", default="512"): vol.In(("256", "512", "1024")),
-            }
-        ),
-        supports_response=SupportsResponse.ONLY,
-    )
     return True
 
 
@@ -214,7 +182,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                     elif request_data["script_id"] == None:
                         raise Exception(
                             "I'm not familiar with that. Can you try again?")
-                    elif self.hass.services.has_service("script", request_data["script_id"]) == False:
+                    elif self.hass.states.get(request_data["script_id"]) == None:
                         raise Exception(
                             "I'm not able to complete your request in the {area}. Can you tell me what room and ask again?".format(area=request_data["area"]))
 
@@ -260,17 +228,19 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
 
         except Exception as err:
             _LOGGER.error(err)
-            intent_response = intent.IntentResponse(
-                language=user_input.language)
+
             message = "I'm sorry."
             if hasattr(err, 'message'):
                 message = message + " " + err.message
+
             new_message["content"] = message
             messages.append(new_message)
 
+            intent_response = intent.IntentResponse(
+                language=user_input.language)
             intent_response.async_set_error(
                 intent.IntentResponseErrorCode.UNKNOWN,
-                new_message["content"],
+                message,
             )
             return conversation.ConversationResult(
                 response=intent_response, conversation_id=conversation_id
