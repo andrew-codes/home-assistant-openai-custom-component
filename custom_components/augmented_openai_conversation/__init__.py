@@ -195,12 +195,8 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                         raise Exception(
                             "I'm not familiar with that. Can you try again?")
                     elif self.hass.states.get(request_data["script_id"]) == None:
-                        registry = await async_get(self.hass)
-                        areas = registry.async_list_areas()
-                        area = next(
-                            area for area in areas if area.name == request_data["area"])
                         raise Exception(
-                            "I'm not able to complete your request in the {area}. Can you tell me what room and ask again?".format(area=area.name))
+                            "I'm not able to complete your request in that room. Can you tell me what room and ask again?")
 
                     new_message["content"] = request_data["comment"]
 
@@ -251,7 +247,6 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 message = message + " " + str(err)
 
             new_message["content"] = message
-            messages.append(new_message)
 
             intent_response = intent.IntentResponse(
                 language=user_input.language)
