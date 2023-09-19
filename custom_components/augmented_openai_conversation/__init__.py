@@ -195,7 +195,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 language=user_input.language)
             intent_response.async_set_error(
                 intent.IntentResponseErrorCode.UNKNOWN,
-                f"Sorry, I had a problem talking to OpenAI.",
+                f"Sorry, I I'm having trouble completing your request.",
             )
             return conversation.ConversationResult(
                 response=intent_response, conversation_id=conversation_id
@@ -207,7 +207,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 language=user_input.language)
             intent_response.async_set_error(
                 intent.IntentResponseErrorCode.UNKNOWN,
-                f"Sorry, I could not understand the response from OpenAI",
+                f"Sorry, I'm having trouble completing your request.",
             )
             return conversation.ConversationResult(
                 response=intent_response, conversation_id=conversation_id
@@ -248,7 +248,6 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 response=intent_response, conversation_id=conversation_id
             )
 
-        messages.append(new_message)
         self.history[conversation_id] = messages
 
         intent_response = intent.IntentResponse(
