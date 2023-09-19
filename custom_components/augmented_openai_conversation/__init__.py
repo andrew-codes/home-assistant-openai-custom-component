@@ -155,7 +155,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 discover_intention_messages = messages + \
                     [{"role": "user", "content": user_input.text}]
 
-                [intent_data, intent_message] = await self.async_send_openai_messages("intent_detection", discover_intention_messages)
+                [intent_data, new_message] = await self.async_send_openai_messages("intent_detection", discover_intention_messages)
                 self.intention = intent_data
 
                 match self.intention:
