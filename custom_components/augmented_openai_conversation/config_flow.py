@@ -18,8 +18,8 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.selector import (
     NumberSelector,
     NumberSelectorConfig,
+    selector,
     TemplateSelector,
-    TextSelector,
 )
 
 from .config import (
@@ -43,7 +43,7 @@ _LOGGER = logging.getLogger(__name__)
 
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
-        vol.Required(CONF_API_KEY): TextSelector(type="password"),
+        vol.Required(CONF_API_KEY): selector({"text": {"type": "password"}})
     }
 )
 
