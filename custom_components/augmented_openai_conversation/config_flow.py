@@ -19,6 +19,7 @@ from homeassistant.helpers.selector import (
     NumberSelector,
     NumberSelectorConfig,
     TemplateSelector,
+    TextSelector,
 )
 
 from .config import (
@@ -42,7 +43,7 @@ _LOGGER = logging.getLogger(__name__)
 
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
-        vol.Required(CONF_API_KEY): str,
+        vol.Required(CONF_API_KEY): TextSelector(type="password"),
     }
 )
 
