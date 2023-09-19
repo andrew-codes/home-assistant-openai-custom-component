@@ -173,6 +173,8 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
 
             match self.intention:
                 case "set":
+                    request_data = json.loads(content)
+
                     if 'clarify' in request_data.keys():
                         raise Exception(request_data["clarify"])
                     elif request_data["entities"] == None:
@@ -249,7 +251,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 message = message + " " + str(err)
 
             new_message["content"] = message
-            # messages.append(new_message)
+            messages.append(new_message)
 
             intent_response = intent.IntentResponse(
                 language=user_input.language)
