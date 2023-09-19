@@ -196,7 +196,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                             "I'm not familiar with that. Can you try again?")
                     elif self.hass.states.get(request_data["script_id"]) == None:
                         registry = await async_get(self.hass)
-                        areas = await registry.async_list_areas()
+                        areas = registry.async_list_areas()
                         area = next(
                             area for area in areas if area.name == request_data["area"])
                         raise Exception(
