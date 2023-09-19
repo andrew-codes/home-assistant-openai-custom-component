@@ -8,6 +8,9 @@
 {%- for entity in all_entities if area_id(entity.entity_id) != none and entity.entity_id not in excluded_entity_ids %}
   {%- set ns.entities = ns.entities + [entity] %}
 {%- endfor %}
+{%- for script in all_scripts if area_id(script.entity_id) != none and script.entity_id not in excluded_script_ids %}
+  {%- set ns.scripts = ns.scripts + [script] %}
+{%- endfor %}
 
 ## Entities found in the Home
 
@@ -38,5 +41,19 @@ Entites will be listed in a table. The format of the list of entities is as foll
     {%- endfor %}
   {%- else %}
 No entities exist in the "{{area}}".
+  {%- endif %}
+{%- endfor %}
+
+## Scripts by Area
+
+{%- for area in areas %}
+  {% set entities = ns.scripts | selectattr("entity_id", 'in', area_entities(area)) | list %}
+### {{ area }}
+  {% if scripts | length > 0 %}
+    {%- for entity in scripts if area_id(entity.entity_id) == area %}
+  - {{ entity.entity_id }}
+    {%- endfor %}
+  {%- else %}
+No scripts exist in the "{{area}}".
   {%- endif %}
 {%- endfor %}

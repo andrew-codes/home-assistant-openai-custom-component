@@ -167,41 +167,12 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                         prompt = persona_prompt + "\n\n" + set_prompt + "\n\n" + entity_states
                         messages.append({"role": "system", "content": prompt})
 
-                        # messages.append(
-                        #     {"role": "user", "content": user_input.text})
-
-                        # [content, new_messages] = await self.async_send_openai_messages(conversation_id, messages)
-                        # request_data = json.loads(content)
-
-                        # messages = messages + new_messages
-                        # match content["clarify"]:
-                        #     case None:
-                        #         response = request_data["comment"] + "...: area, ID: {area}, {id}".format(
-                        #             request_data["area"], request_data["script_id"])
-                        #     case _:
-                        #         self.clarification_needed = True
-                        #         response = "I'm sorry, I didn't understand that. Can you rephrase your request and try again?"
-
                     case "command":
                         command_prompt = get_prompt('command')
                         scripts_prompt = get_prompt('scripts')
                         scripts = self._async_generate_prompt(scripts_prompt)
                         prompt = persona_prompt + "\n\n" + command_prompt + "\n\n" + scripts
                         messages.append({"role": "system", "content": prompt})
-
-                        # messages.append(
-                        #     {"role": "user", "content": user_input.text})
-
-                        # [content, new_messages] = await self.async_send_openai_messages(conversation_id, messages)
-                        # request_data = json.loads(content)
-
-                        # messages = messages + new_messages
-
-                        # if request_data["script_id"] != None and request_data["area"] != None and request_data["comment"] != None:
-                        #     response = request_data["comment"] + "...: area, ID: {area}, {id}".format(
-                        #         request_data["area"], request_data["script_id"])
-                        # else:
-                        #     response = "I'm sorry, I didn't understand that. Can you rephrase your request and try again?"
 
                     case "query":
                         query_prompt = get_prompt('query')
@@ -245,7 +216,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                             "I'm not familiar with that. Can you try again?")
                     elif self.hass.services.has_service(request_data["area"], "script", request_data["script_id"]) == False:
                         raise Exception(
-                            "I'm not able to complete your request in the {area}. Can you rephrase your request and try again?".format(request_data["area"])))
+                            "I'm not able to complete your request in the {area}. Can you tell me what room and ask again?".format(request_data["area"]))
 
                     new_message["content"] = request_data["comment"] + "...: area, ID: {area}, {id}".format(
                         request_data["area"], request_data["script_id"])
