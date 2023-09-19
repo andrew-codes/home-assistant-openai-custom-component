@@ -216,10 +216,10 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                             "I'm not familiar with that. Can you try again?")
                     elif self.hass.services.has_service("script", request_data["script_id"]) == False:
                         raise Exception(
-                            "I'm not able to complete your request in the {area}. Can you tell me what room and ask again?".format(request_data["area"]))
+                            "I'm not able to complete your request in the {area}. Can you tell me what room and ask again?".format(area=request_data["area"]))
 
                     new_message["content"] = request_data["comment"] + "...: area, ID: {area}, {id}".format(
-                        request_data["area"], request_data["script_id"])
+                        area=request_data["area"], id=request_data["script_id"])
 
         except error.OpenAIError as err:
             _LOGGER.error("Network error rendering prompt: %s", err)
