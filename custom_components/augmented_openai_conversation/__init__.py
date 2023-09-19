@@ -186,8 +186,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                         raise Exception(
                             "I'm not able to complete your request in the {area}. Can you tell me what room and ask again?".format(area=request_data["area"]))
 
-                    new_message["content"] = request_data["comment"] + "...: area, ID: {area}, {id}".format(
-                        area=request_data["area"], id=request_data["script_id"])
+                    new_message["content"] = request_data["comment"]
 
         except error.OpenAIError as err:
             _LOGGER.error("Network error rendering prompt: %s", err)
