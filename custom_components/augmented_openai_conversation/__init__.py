@@ -173,7 +173,14 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
 
             match self.intention:
                 case "set":
-                    raise Exception("I can't directly control devices yet.")
+                    if request_data["clarify"] != None:
+                        raise Exception(request_data["clarify"])
+                    elif request_data["entities"] == None:
+                        raise Exception("I couldn't find those devices.")
+                    elif request_data["set_value"] == None:
+                        raise Exception('I need to know what to set it to.')
+
+                    new_message["content"] = request_data["comment"]
 
                 case "command":
                     request_data = json.loads(content)
@@ -242,7 +249,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 message = message + " " + str(err)
 
             new_message["content"] = message
-            messages.append(new_message)
+            # messages.append(new_message)
 
             intent_response = intent.IntentResponse(
                 language=user_input.language)
