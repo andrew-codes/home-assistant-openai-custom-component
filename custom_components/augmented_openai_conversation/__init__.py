@@ -214,7 +214,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                     elif request_data["script_id"] == None:
                         raise Exception(
                             "I'm not familiar with that. Can you try again?")
-                    elif self.hass.services.has_service(request_data["area"], "script", request_data["script_id"]) == False:
+                    elif self.hass.services.has_service("script", request_data["script_id"]) == False:
                         raise Exception(
                             "I'm not able to complete your request in the {area}. Can you tell me what room and ask again?".format(request_data["area"]))
 
