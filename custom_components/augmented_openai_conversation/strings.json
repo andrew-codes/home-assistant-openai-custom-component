@@ -17,7 +17,8 @@
     "step": {
       "init": {
         "data": {
-          "prompt": "Prompt Template",
+          "entity_state_prompt": "Entity State Prompt Template",
+          "scripts_prompt": "Scripts Prompt Template",
           "model": "Completion Model",
           "max_tokens": "Maximum tokens to return in response",
           "temperature": "Temperature",
