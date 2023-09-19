@@ -157,10 +157,9 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 discover_intention_messages = messages + \
                     [{"role": "user", "content": user_input.text}]
 
-                [content, intent_message] = await self.async_send_openai_messages("intent_detection", discover_intention_messages)
-                intent_data = json.loads(content)
+                [intent_data, intent_messages] = await self.async_send_openai_messages("intent_detection", discover_intention_messages)
 
-                match intent_data["intent"]:
+                match intent_data:
                     case "set":
                         set_prompt = get_prompt('set')
                         entity_states_prompt = get_prompt('entity_states')
@@ -172,11 +171,11 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                             {"role": "user", "content": user_input.text})
 
                         [content, new_messages] = await self.async_send_openai_messages(conversation_id, messages)
-                        intent_data = json.loads(content)
+                        request_data = json.loads(content)
 
                         messages = messages + new_messages
-                        response = intent_data["comment"] + "...: entities, set_value, timestamp: {entities}, {value}, {timestamp}".format(
-                            ",".join(intent_data["entities"]), intent_data["set_value"], intent_data["scheduleTimeStamp"])
+                        response = request_data["comment"] + "...: entities, set_value, timestamp: {entities}, {value}, {timestamp}".format(
+                            ",".join(request_data["entities"]), request_data["set_value"], request_data["scheduleTimeStamp"])
 
                     case "command":
                         command_prompt = get_prompt('command')
@@ -188,11 +187,11 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                             {"role": "user", "content": user_input.text})
 
                         [content, new_messages] = await self.async_send_openai_messages(conversation_id, messages)
-                        intent_data = json.loads(content)
+                        request_data = json.loads(content)
 
                         messages = messages + new_messages
-                        response = intent_data["comment"] + "...: area, ID: {area}, {id}".format(
-                            intent_data["area"], intent_data["script_id"])
+                        response = request_data["comment"] + "...: area, ID: {area}, {id}".format(
+                            request_data["area"], request_data["script_id"])
 
                     case "query":
                         query_prompt = get_prompt('query')
