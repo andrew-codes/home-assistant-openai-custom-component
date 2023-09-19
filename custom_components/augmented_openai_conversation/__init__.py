@@ -34,8 +34,6 @@ from .config import (
     CONF_CHAT_MODEL,
     CONF_MAX_TOKENS,
     CONF_TEMPERATURE,
-    CONF_ENTITY_STATE_PROMPT,
-    CONF_SCRIPTS_PROMPT,
     CONF_LOCATION,
     CONF_TOP_P,
     DEFAULT_CHAT_MODEL,
@@ -143,100 +141,114 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 messages = self.history[conversation_id]
             else:
                 conversation_id = ulid.ulid()
+                location = self.entry.options.get(
+                    CONF_LOCATION, DEFAULT_LOCATION)
+                persona_prompt = get_prompt('persona')
+                intent_detection_prompt = get_prompt('intent_detection').format(
+                    location=location, now_formatted='%c'.format(datetime.now()))
+                properties_of_home_prompt = get_prompt("properties_of_home")
 
-            location = self.entry.options.get(
-                CONF_LOCATION, DEFAULT_LOCATION)
-            persona_prompt = get_prompt('persona')
-            intent_detection_prompt = get_prompt('intent_detection').format(
-                location=location, now_formatted='%c'.format(datetime.now()))
-            properties_of_home_prompt = get_prompt("properties_of_home")
+                intent_prompt = persona_prompt + "\n\n" + \
+                    intent_detection_prompt + "\n\n" + properties_of_home_prompt
 
-            intent_prompt = persona_prompt + "\n\n" + \
-                intent_detection_prompt + "\n\n" + properties_of_home_prompt
+                messages = [{"role": "system", "content": intent_prompt}]
+                discover_intention_messages = messages + \
+                    [{"role": "user", "content": user_input.text}]
 
-            messages = [{"role": "system", "content": intent_prompt}]
-            discover_intention_messages = messages + \
-                [{"role": "user", "content": user_input.text}]
+                [intent_data, intent_message] = await self.async_send_openai_messages("intent_detection", discover_intention_messages)
+                self.intention = intent_data
 
-            [intent_data, intent_messages] = await self.async_send_openai_messages("intent_detection", discover_intention_messages)
+                match self.intention:
+                    case "set":
+                        set_prompt = get_prompt('set')
+                        entity_states_prompt = get_prompt('entity_states')
+                        entity_states = self._async_generate_prompt(
+                            entity_states_prompt)
+                        prompt = persona_prompt + "\n\n" + set_prompt + "\n\n" + entity_states
+                        messages.append({"role": "system", "content": prompt})
 
-            match intent_data:
+                        # messages.append(
+                        #     {"role": "user", "content": user_input.text})
+
+                        # [content, new_messages] = await self.async_send_openai_messages(conversation_id, messages)
+                        # request_data = json.loads(content)
+
+                        # messages = messages + new_messages
+                        # match content["clarify"]:
+                        #     case None:
+                        #         response = request_data["comment"] + "...: area, ID: {area}, {id}".format(
+                        #             request_data["area"], request_data["script_id"])
+                        #     case _:
+                        #         self.clarification_needed = True
+                        #         response = "I'm sorry, I didn't understand that. Can you rephrase your request and try again?"
+
+                    case "command":
+                        command_prompt = get_prompt('command')
+                        scripts_prompt = get_prompt('scripts')
+                        scripts = self._async_generate_prompt(scripts_prompt)
+                        prompt = persona_prompt + "\n\n" + command_prompt + "\n\n" + scripts
+                        messages.append({"role": "system", "content": prompt})
+
+                        # messages.append(
+                        #     {"role": "user", "content": user_input.text})
+
+                        # [content, new_messages] = await self.async_send_openai_messages(conversation_id, messages)
+                        # request_data = json.loads(content)
+
+                        # messages = messages + new_messages
+
+                        # if request_data["script_id"] != None and request_data["area"] != None and request_data["comment"] != None:
+                        #     response = request_data["comment"] + "...: area, ID: {area}, {id}".format(
+                        #         request_data["area"], request_data["script_id"])
+                        # else:
+                        #     response = "I'm sorry, I didn't understand that. Can you rephrase your request and try again?"
+
+                    case "query":
+                        query_prompt = get_prompt('query')
+                        entity_states_prompt = get_prompt('entity_states')
+                        entity_states = self._async_generate_prompt(
+                            entity_states_prompt)
+                        prompt = persona_prompt + "\n\n" + query_prompt + "\n\n" + entity_states
+                        messages.append({"role": "system", "content": prompt})
+
+                    case "question":
+                        question_prompt = get_prompt('question')
+                        entity_states_prompt = get_prompt('entity_states')
+                        entity_states = self._async_generate_prompt(
+                            entity_states_prompt)
+                        prompt = persona_prompt + "\n\n" + question_prompt + "\n\n" + entity_states
+                        messages.append({"role": "system", "content": prompt})
+
+                    case "clarify_intent":
+                        raise Exception(
+                            "Can you rephrase your request and try again?")
+                    case _:
+                        raise Exception(
+                            "Can you rephrase your request and try again?")
+
+            messages.append(
+                {"role": "user", "content": user_input.text})
+
+            [content, new_message] = await self.async_send_openai_messages(conversation_id, messages)
+
+            match self.intention:
                 case "set":
-                    set_prompt = get_prompt('set')
-                    entity_states_prompt = get_prompt('entity_states')
-                    entity_states = self._async_generate_prompt(
-                        entity_states_prompt)
-                    prompt = persona_prompt + "\n\n" + set_prompt + "\n\n" + entity_states
-                    messages.append({"role": "system", "content": prompt})
-                    messages.append(
-                        {"role": "user", "content": user_input.text})
-
-                    [content, new_messages] = await self.async_send_openai_messages(conversation_id, messages)
-                    request_data = json.loads(content)
-
-                    messages = messages + new_messages
-                    match content["clarify"]:
-                        case None:
-                            response = request_data["comment"] + "...: area, ID: {area}, {id}".format(
-                                request_data["area"], request_data["script_id"])
-                        case _:
-                            response = "I'm sorry, I didn't understand that. Can you rephrase your request and try again?"
+                    raise Exception("I can't directly control devices yet.")
 
                 case "command":
-                    command_prompt = get_prompt('command')
-                    scripts_prompt = get_prompt('scripts')
-                    scripts = self._async_generate_prompt(scripts_prompt)
-                    prompt = persona_prompt + "\n\n" + command_prompt + "\n\n" + scripts
-                    messages.append({"role": "system", "content": prompt})
-                    messages.append(
-                        {"role": "user", "content": user_input.text})
-
-                    [content, new_messages] = await self.async_send_openai_messages(conversation_id, messages)
                     request_data = json.loads(content)
 
-                    messages = messages + new_messages
+                    if request_data["area"] == None:
+                        raise Exception("What room is that in?")
+                    elif request_data["script_id"] == None:
+                        raise Exception(
+                            "I'm not familiar with that. Can you try again?")
+                    elif self.hass.services.has_service(request_data["area"], "script", request_data["script_id"]) == False:
+                        raise Exception(
+                            "I'm not able to complete your request in the {area}. Can you rephrase your request and try again?".format(request_data["area"])))
 
-                    match content["clarify"]:
-                        case None:
-                            response = request_data["comment"] + "...: area, ID: {area}, {id}".format(
-                                request_data["area"], request_data["script_id"])
-                        case _:
-                            response = "I'm sorry, I didn't understand that. Can you rephrase your request and try again?"
-
-                case "query":
-                    query_prompt = get_prompt('query')
-                    entity_states_prompt = get_prompt('entity_states')
-                    entity_states = self._async_generate_prompt(
-                        entity_states_prompt)
-                    prompt = persona_prompt + "\n\n" + query_prompt + "\n\n" + entity_states
-                    messages.append({"role": "system", "content": prompt})
-                    messages.append(
-                        {"role": "user", "content": user_input.text})
-
-                    [content, new_messages] = await self.async_send_openai_messages(conversation_id, messages)
-
-                    messages = messages + new_messages
-                    response = content
-
-                case "question":
-                    question_prompt = get_prompt('question')
-                    entity_states_prompt = get_prompt('entity_states')
-                    entity_states = self._async_generate_prompt(
-                        entity_states_prompt)
-                    prompt = persona_prompt + "\n\n" + question_prompt + "\n\n" + entity_states
-                    messages.append({"role": "system", "content": prompt})
-                    messages.append(
-                        {"role": "user", "content": user_input.text})
-
-                    [content, new_messages] = await self.async_send_openai_messages(conversation_id, messages)
-
-                    messages = messages + new_messages
-                    response = content
-
-                case "clarify_intent":
-                    response = "I'm sorry, I didn't understand that. Can you rephrase your request and try again?"
-                case _:
-                    response = "I'm sorry, I didn't understand that. Can you rephrase your request and try again?"
+                    new_message["content"] = request_data["comment"] + "...: area, ID: {area}, {id}".format(
+                        request_data["area"], request_data["script_id"])
 
         except error.OpenAIError as err:
             _LOGGER.error("Network error rendering prompt: %s", err)
@@ -261,6 +273,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             return conversation.ConversationResult(
                 response=intent_response, conversation_id=conversation_id
             )
+
         except TemplateError as err:
             _LOGGER.error(
                 "Error rendering Home Assistant template: %s", err)
@@ -273,26 +286,31 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             return conversation.ConversationResult(
                 response=intent_response, conversation_id=conversation_id
             )
+
         except Exception as err:
             _LOGGER.error(err)
             intent_response = intent.IntentResponse(
                 language=user_input.language)
-            message = "I'm sorry. I'm having trouble at the moment. Try asking me again in a little bit."
+            message = "I'm sorry."
             if hasattr(err, 'message'):
-                message = message + " Here's the exception message for troubleshooting: " + err.message
+                message = message + " " + err.message
+            new_message["content"] = message
+            messages.append(new_message)
+
             intent_response.async_set_error(
                 intent.IntentResponseErrorCode.UNKNOWN,
-                message,
+                new_message["content"],
             )
             return conversation.ConversationResult(
                 response=intent_response, conversation_id=conversation_id
             )
 
+        messages.append(new_message)
         self.history[conversation_id] = messages
 
         intent_response = intent.IntentResponse(
             language=user_input.language)
-        intent_response.async_set_speech(response)
+        intent_response.async_set_speech(new_message["content"])
 
         return conversation.ConversationResult(
             response=intent_response, conversation_id=conversation_id
@@ -320,7 +338,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
 
         message = result["choices"][0]["message"]
 
-        return [message["content"], [message]]
+        return [message["content"], message]
 
     def _async_generate_prompt(self, raw_prompt: str) -> str:
         """Generate a prompt for the user."""
