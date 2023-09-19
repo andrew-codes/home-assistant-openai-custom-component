@@ -178,7 +178,9 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 case "command":
                     request_data = json.loads(content)
 
-                    if request_data["area"] == None:
+                    if request_data["clarify"] != None:
+                        raise Exception(request_data["clarify"])
+                    elif request_data["area"] == None:
                         raise Exception("What room is that in?")
                     elif request_data["script_id"] == None:
                         raise Exception(
