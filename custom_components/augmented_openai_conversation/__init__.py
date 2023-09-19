@@ -232,6 +232,8 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             message = "I'm sorry."
             if hasattr(err, 'message'):
                 message = message + " " + err.message
+            else:
+                message = message + " " + str(err)
 
             new_message["content"] = message
             messages.append(new_message)
