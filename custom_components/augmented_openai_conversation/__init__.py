@@ -173,7 +173,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
 
             match self.intention:
                 case "set":
-                    if request_data["clarify"] != None:
+                    if 'clarify' in request_data.keys():
                         raise Exception(request_data["clarify"])
                     elif request_data["entities"] == None:
                         raise Exception("I couldn't find those devices.")
@@ -185,7 +185,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 case "command":
                     request_data = json.loads(content)
 
-                    if request_data["clarify"] != None:
+                    if 'clarify' in request_data.keys():
                         raise Exception(request_data["clarify"])
                     elif request_data["area"] == None:
                         raise Exception("What room is that in?")
