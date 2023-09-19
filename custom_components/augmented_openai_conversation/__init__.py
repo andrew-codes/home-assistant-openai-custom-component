@@ -23,6 +23,7 @@ from homeassistant.exceptions import (
     HomeAssistantError,
     TemplateError,
 )
+from homeassistant.helpers.area_registry import async_get
 from homeassistant.helpers import config_validation as cv, intent, selector, template
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import ulid
@@ -183,8 +184,12 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                         raise Exception(
                             "I'm not familiar with that. Can you try again?")
                     elif self.hass.states.get(request_data["script_id"]) == None:
+                        registry = await async_get(self.hass)
+                        areas = await registry.async_list_areas()
+                        area = next(
+                            area for area in areas if area.name == request_data["area"])
                         raise Exception(
-                            "I'm not able to complete your request in the {area}. Can you tell me what room and ask again?".format(area=request_data["area"]))
+                            "I'm not able to complete your request in the {area}. Can you tell me what room and ask again?".format(area=area.name))
 
                     new_message["content"] = request_data["comment"]
 
