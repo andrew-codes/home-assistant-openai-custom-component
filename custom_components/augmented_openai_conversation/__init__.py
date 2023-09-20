@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from functools import partial
 import logging
+import pkgutil
 from typing import Literal
 
 import openai
@@ -116,7 +117,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 self.intention = None
 
             if self.intention == None:
-                intent_prompt = self.get_prompt('intent_detection')
+                intent_prompt = self.get_intention_prompt()
                 messages = [{"role": "system", "content": intent_prompt}]
                 discover_intention_messages = messages + \
                     [{"role": "user", "content": user_input.text}]
@@ -315,8 +316,5 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
 
         return self._async_generate_prompt(prompt)
 
-    def get_prompt(prompt_name: str) -> str:
-        prompt = pkgutil.get_data(__name__, "prompts/{file_name}.md.j2".format(
-            file_name=prompt_name)).decode("utf-8")
-
-        return self._async_generate_prompt(prompt)
+    def get_intention_prompt() -> str:
+        return pkgutil.get_data(__name__, "prompts/intent_detection.md.j2").decode("utf-8")

@@ -50,7 +50,7 @@ Scripts will be listed for each area in a table. The table will contain the foll
 
 | area_id | area_name | script_id | script_name |
 | :------ | :-------- | :-------- | :---------- |
-{%- set excluded_area_ids = ["network_closet"] %}
+{%- set excluded_area_ids = [] %}
 {%- set excluded_script_ids = [] %}
 {%- set areas = states
   | map(attribute='entity_id')
