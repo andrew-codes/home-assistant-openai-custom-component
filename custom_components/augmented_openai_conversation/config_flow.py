@@ -56,10 +56,10 @@ def get_prompt(prompt_name: str) -> str:
 def get_default_options() -> dict[str, Any]:
     return types.MappingProxyType(
         {
-            CONF_SET_PROMPT: get_prompt("set_prompt"),
-            CONF_COMMAND_PROMPT: get_prompt("command_prompt"),
-            CONF_QUERY_PROMPT: get_prompt("query_prompt"),
-            CONF_HELP_PROMPT: get_prompt("help_prompt"),
+            CONF_SET_PROMPT: get_prompt("set"),
+            CONF_COMMAND_PROMPT: get_prompt("command"),
+            CONF_QUERY_PROMPT: get_prompt("query"),
+            CONF_HELP_PROMPT: get_prompt("help"),
             CONF_CHAT_MODEL: DEFAULT_CHAT_MODEL,
             CONF_MAX_TOKENS: DEFAULT_MAX_TOKENS,
             CONF_TOP_P: DEFAULT_TOP_P,
