@@ -117,7 +117,8 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 self.intention = None
 
             if self.intention == None:
-                intent_prompt = self.get_intention_prompt()
+                intent_prompt = pkgutil.get_data(
+                    __name__, "prompts/intent_detection.md.j2").decode("utf-8")
                 messages = [{"role": "system", "content": intent_prompt}]
                 discover_intention_messages = messages + \
                     [{"role": "user", "content": user_input.text}]
@@ -315,6 +316,3 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         prompt = self.entry.options.get(prompt_name, "")
 
         return self._async_generate_prompt(prompt)
-
-    def get_intention_prompt() -> str:
-        return pkgutil.get_data(__name__, "prompts/intent_detection.md.j2").decode("utf-8")
