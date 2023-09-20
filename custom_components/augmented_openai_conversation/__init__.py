@@ -109,6 +109,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 messages = self.history[conversation_id]
             else:
                 conversation_id = ulid.ulid()
+                self.intention = None
 
             if self.intention == None:
                 intent_prompt = self.get_prompt('intent_detection')
