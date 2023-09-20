@@ -312,7 +312,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             parse_result=False,
         )
 
-    def populate_prompt(prompt_name: str) -> str:
+    def populate_prompt(self, prompt_name: str) -> str:
         prompt = self.entry.options.get(prompt_name, "")
 
         return self._async_generate_prompt(prompt)
