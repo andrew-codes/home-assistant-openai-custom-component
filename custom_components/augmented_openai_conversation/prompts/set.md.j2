@@ -57,6 +57,53 @@ You will need to know the following information to respond to the user:
 - The entities that are available in the home.
 - The state of each entity.
 - The attributes of each entity.
+- Current date and time.
 
-You will need to determine from the current state and attributes what values are valid for each entity.
+You will need to determine valid values for the state and attributes from the current values.
 
+### Entities
+
+All entities in the home including their state and attributes are listed in the table below. The table will contain the following columns:
+
+- "area_name": is the area name of the home the entity is in.
+- "entity_id": is the ID of the entity.
+- "entity_name": is the name of the entity.
+- "state": is the state of the entity.
+- "attributes": lists the attributes. Each attribute is listed as "attribute: value" and delimited by a comma.
+
+| area_name | entity_id | entity_name | state | attributes |
+|:----------|:----------|:------------|:------|:-----------|
+{%- set excluded_area_ids = [] %}
+{%- set excluded_entity_ids = [] %}
+{%- set areas = states
+  | map(attribute='entity_id')
+  | map('area_id') | unique | reject('none') | reject("in", excluded_area_ids) | list %}
+{%- set all_entities = states | selectattr('domain', 'in', ('light', 'switch', 'climate', 'lock', 'media_player')) | list  %}
+{%- set ns = namespace(scripts = [], entities = []) %}
+{%- for entity in all_entities if area_id(entity.entity_id) != none and entity.entity_id not in excluded_entity_ids %}
+  {%- set ns.entities = ns.entities + [entity] %}
+{%- endfor %}
+{%- for area in areas %}
+    {%- set entities = ns.entities | selectattr("entity_id", 'in', area_entities(area)) | list %}
+    {%- for entity in entities if area_id(entity.entity_id) != none and entity.entity_id not in excluded_entity_ids %}
+| {{ area_name(area) }} | {{ entity.entity_id }} | "{{ entity.name }}" | "{{ entity.state }}" | {{ entity.attributes | tojson | replace('"', '') | replace('{', '') | replace('}', '') | replace(',', ', ') | replace(':', ': ') | replace('true', 'True') | replace('false', 'False') | replace('null', 'None') }} |
+    {%- endfor %}
+{%- endfor %}
+
+### Current Date and Time
+
+The current date is and time is {{ now().strftime("%c") }}.
+
+## Additional Instructions
+
+If the user asks to change the temperature of a climate entity but does not specific a precise number value, then adjust the temperature by two degrees.
+
+Example requst: if the temperature is 68 and the user says "It's too cold. Change the temperature."
+Example response:
+```json
+{
+  "entities": ["climate.main_floor"],
+  "attributes": { "temperature": 70 },
+  "comment": "I have set the temperature on the main floor to 68 degrees."
+}
+```

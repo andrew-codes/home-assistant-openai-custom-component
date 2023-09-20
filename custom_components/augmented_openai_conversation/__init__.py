@@ -149,34 +149,34 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
 
             [content, new_message] = await self.async_send_openai_messages(conversation_id, messages)
 
-            match self.intention:
-                case "set":
-                    request_data = json.loads(content)
+            try:
+                match self.intention:
+                    case "set":
+                        request_data = json.loads(content)
 
-                    if 'clarify' in request_data.keys():
-                        raise ClarificationException(request_data["clarify"])
-                    elif request_data["entities"] == None:
-                        raise ClarificationException("I couldn't find those devices.")
-                    elif request_data["set_value"] == None:
-                        raise ClarificationException('I need to know what to set it to.')
+                        if request_data["entities"] == None:
+                            raise ClarificationException("I couldn't find those devices. Can you specify different devices and ask again?")
+                        elif request_data["set_value"] == None:
+                            raise ClarificationException("I didn't understand what to set the devices to. Can you rephrase your request and ask again?")
 
-                    new_message["content"] = request_data["comment"]
+                        new_message["content"] = request_data["comment"]
 
-                case "command":
-                    request_data = json.loads(content)
+                    case "command":
+                        request_data = json.loads(content)
 
-                    if 'clarify' in request_data.keys():
-                        raise ClarificationException(request_data["clarify"])
-                    elif request_data["area"] == None:
-                        raise ClarificationException("What room is that in?")
-                    elif request_data["script_id"] == None:
-                        raise ClarificationException(
-                            "I'm not familiar with that. Can you try again?")
-                    elif self.hass.states.get(request_data["script_id"]) == None:
-                        raise ClarificationException(
-                            "I'm not able to complete your request in that room. Can you tell me what room and ask again?")
+                        if request_data["area"] == None:
+                            raise ClarificationException("What room is that in?")
+                        elif request_data["script_id"] == None:
+                            raise ClarificationException(
+                                "I'm not familiar with how to do that. Can you specify something else and ask again?")
+                        elif self.hass.states.get(request_data["script_id"]) == None:
+                            raise ClarificationException(
+                                "I'm not able to complete your request in that room. Can you specify a different room and ask again?")
 
-                    new_message["content"] = request_data["comment"]
+                        new_message["content"] = request_data["comment"]
+            
+            except json.JSONDecodeError as err:
+                new_message["content"] = content
 
         except error.OpenAIError as err:
             _LOGGER.error("Network error rendering prompt: %s", err)
@@ -235,8 +235,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         except ClarificationException as err:
             _LOGGER.debug("Need for clarification: %s", err)
 
-            message = "I'm sorry. " + str(err)
-            new_message["content"] = message
+            new_message["content"] = str(err)
 
             intent_response = intent.IntentResponse(
                 language=user_input.language)
