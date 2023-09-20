@@ -163,7 +163,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                         if request_data["entities"] == None:
                             raise ClarificationException(
                                 "I couldn't find those devices. Can you specify different devices and ask again?")
-                        elif request_data["set_value"] == None:
+                        elif ("state" in request_data.keys() and request_data["state"] == None) and ("attributes" in request_data.keys() and request_data["attributes"] == None):
                             raise ClarificationException(
                                 "I didn't understand what to set the devices to. Can you rephrase your request and ask again?")
 
