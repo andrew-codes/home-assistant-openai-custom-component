@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from functools import partial
 import logging
+import pkgutil
 import types
 from types import MappingProxyType
 from typing import Any
@@ -24,19 +25,18 @@ from homeassistant.helpers.selector import (
 
 from .config import (
     CONF_CHAT_MODEL,
+    CONF_COMMAND_PROMPT,
+    CONF_HELP_PROMPT,
     CONF_MAX_TOKENS,
-    CONF_ENTITY_STATE_PROMPT,
-    CONF_SCRIPTS_PROMPT,
+    CONF_QUERY_PROMPT,
+    CONF_SET_PROMPT,
     CONF_TEMPERATURE,
-    CONF_LOCATION,
     CONF_TOP_P,
     DEFAULT_CHAT_MODEL,
     DEFAULT_MAX_TOKENS,
-    DEFAULT_LOCATION,
     DEFAULT_TEMPERATURE,
     DEFAULT_TOP_P,
     DOMAIN,
-    get_prompt
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -48,16 +48,22 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
 )
 
 
+def get_prompt(prompt_name: str) -> str:
+    return pkgutil.get_data(__name__, "prompts/{file_name}.md.j2".format(
+        file_name=prompt_name)).decode("utf-8")
+
+
 def get_default_options() -> dict[str, Any]:
     return types.MappingProxyType(
         {
-            CONF_ENTITY_STATE_PROMPT: get_prompt("entity_states"),
-            CONF_SCRIPTS_PROMPT: get_prompt("scripts"),
+            CONF_SET_PROMPT: get_prompt("set_prompt"),
+            CONF_COMMAND_PROMPT: get_prompt("command_prompt"),
+            CONF_QUERY_PROMPT: get_prompt("query_prompt"),
+            CONF_HELP_PROMPT: get_prompt("help_prompt"),
             CONF_CHAT_MODEL: DEFAULT_CHAT_MODEL,
             CONF_MAX_TOKENS: DEFAULT_MAX_TOKENS,
             CONF_TOP_P: DEFAULT_TOP_P,
             CONF_TEMPERATURE: DEFAULT_TEMPERATURE,
-            CONF_LOCATION: DEFAULT_LOCATION,
         }
     )
 
@@ -140,19 +146,24 @@ def openai_config_option_schema(options: MappingProxyType[str, Any]) -> dict:
 
     return {
         vol.Optional(
-            CONF_LOCATION,
-            description={"suggested_value": options[CONF_LOCATION]},
-            default=DEFAULT_LOCATION,
-        ): str,
-        vol.Optional(
-            CONF_ENTITY_STATE_PROMPT,
-            description={"suggested_value": options[CONF_ENTITY_STATE_PROMPT]},
-            default=DEFAULT_OPTIONS[CONF_ENTITY_STATE_PROMPT],
+            CONF_SET_PROMPT,
+            description={"suggested_value": options[CONF_SET_PROMPT]},
+            default=DEFAULT_OPTIONS[CONF_SET_PROMPT],
         ): TemplateSelector(),
         vol.Optional(
-            CONF_SCRIPTS_PROMPT,
-            description={"suggested_value": options[CONF_SCRIPTS_PROMPT]},
-            default=DEFAULT_OPTIONS[CONF_SCRIPTS_PROMPT],
+            CONF_COMMAND_PROMPT,
+            description={"suggested_value": options[CONF_COMMAND_PROMPT]},
+            default=DEFAULT_OPTIONS[CONF_COMMAND_PROMPT],
+        ): TemplateSelector(),
+        vol.Optional(
+            CONF_QUERY_PROMPT,
+            description={"suggested_value": options[CONF_QUERY_PROMPT]},
+            default=DEFAULT_OPTIONS[CONF_QUERY_PROMPT],
+        ): TemplateSelector(),
+        vol.Optional(
+            CONF_HELP_PROMPT,
+            description={"suggested_value": options[CONF_HELP_PROMPT]},
+            default=DEFAULT_OPTIONS[CONF_HELP_PROMPT],
         ): TemplateSelector(),
         vol.Optional(
             CONF_CHAT_MODEL,

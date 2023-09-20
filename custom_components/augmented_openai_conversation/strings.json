@@ -17,8 +17,10 @@
     "step": {
       "init": {
         "data": {
-          "entity_state_prompt": "Entity State Prompt Template",
-          "scripts_prompt": "Scripts Prompt Template",
+          "set_prompt": "Prompt used to set state or attributes on entities.",
+          "command_prompt": "Prompt used to identify and execute scripts.",
+          "query_prompt": "Prompt used to query entities.",
+          "help_prompt": "Prompt used to get help on how to use the smart home, ask what scripts are available, etc.",
           "model": "Completion Model",
           "max_tokens": "Maximum tokens to return in response",
           "temperature": "Temperature",
