@@ -21,14 +21,14 @@ You will need to know the following information to respond to the user:
 
 All entities in the home including their state and attributes are listed in the table below. The table will contain the following columns:
 
-- "area": is the area of the home the entity is in.
-- "entity": is the name of the entity.
+- "area_name": is the area of the home the entity is in.
+- "entity_name": is the name of the entity.
 - "domain": is domain or type of entity.
 - "state": is the state of the entity.
 - "attributes": lists the attributes. Each attribute is listed as "attribute: value" and delimited by a comma.
 
-| area | entity | domain | state | attributes |
-|:-----|:-------|:-------|:------|:-----------|
+| area_name | entity_name | domain | state | attributes |
+|:----------|:------------|:-------|:------|:-----------|
 {%- set excluded_area_ids = [] %}
 {%- set excluded_entity_ids = [] %}
 {%- set areas = states
