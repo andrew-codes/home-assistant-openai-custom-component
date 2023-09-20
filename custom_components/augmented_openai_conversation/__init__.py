@@ -33,7 +33,11 @@ from datetime import datetime, timedelta
 
 from .config import (
     CONF_CHAT_MODEL,
+    CONF_COMMAND_PROMPT,
+    CONF_HELP_PROMPT,
     CONF_MAX_TOKENS,
+    CONF_QUERY_PROMPT,
+    CONF_SET_PROMPT,
     CONF_TEMPERATURE,
     CONF_TOP_P,
     DEFAULT_CHAT_MODEL,
@@ -122,19 +126,19 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
 
                 match self.intention:
                     case "set":
-                        prompt = self.get_prompt('set')
+                        prompt = self.populate_prompt(CONF_SET_PROMPT)
                         messages.append({"role": "system", "content": prompt})
 
                     case "command":
-                        prompt = self.get_prompt('command')
+                        prompt = self.populate_prompt(CONF_COMMAND_PROMPT)
                         messages.append({"role": "system", "content": prompt})
 
                     case "query":
-                        prompt = self.get_prompt('query')
+                        prompt = self.populate_prompt(CONF_QUERY_PROMPT)
                         messages.append({"role": "system", "content": prompt})
 
                     case "help":
-                        prompt = self.get_prompt('help')
+                        prompt = self.populate_prompt(CONF_HELP_PROMPT)
                         messages.append({"role": "system", "content": prompt})
 
                     case "unknown":
@@ -305,6 +309,11 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             },
             parse_result=False,
         )
+
+    def populate_prompt(prompt_name: str) -> str:
+        prompt = self.entry.options.get(prompt_name, "")
+
+        return self._async_generate_prompt(prompt)
 
     def get_prompt(prompt_name: str) -> str:
         prompt = pkgutil.get_data(__name__, "prompts/{file_name}.md.j2".format(
