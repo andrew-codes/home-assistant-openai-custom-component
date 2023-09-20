@@ -305,8 +305,8 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             parse_result=False,
         )
 
-    def get_prompt(prompt_file_name: str) -> str:
-        prompt = pkgutil.get_data(__name__, "prompts/{prompt_file_name}.md.j2".format(
-            prompt_file_name=prompt_file_name)).decode("utf-8")
+    def get_prompt(prompt_name: str) -> str:
+        prompt = pkgutil.get_data(__name__, "prompts/{file_name}.md.j2".format(
+            file_name=prompt_name)).decode("utf-8")
 
         return self._async_generate_prompt(prompt)
