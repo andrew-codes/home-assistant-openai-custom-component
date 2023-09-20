@@ -43,8 +43,8 @@ from .config import (
     DEFAULT_LOCATION,
     DEFAULT_TOP_P,
     DOMAIN,
-    get_prompt,
 )
+from .ClarificationException import (ClarificationException, IntentClarificationException)
 
 _LOGGER = logging.getLogger(__name__)
 SERVICE_GENERATE_IMAGE = "generate_image"
@@ -110,16 +110,9 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 messages = self.history[conversation_id]
             else:
                 conversation_id = ulid.ulid()
-                location = self.entry.options.get(
-                    CONF_LOCATION, DEFAULT_LOCATION)
-                persona_prompt = get_prompt('persona')
-                intent_detection_prompt = get_prompt('intent_detection').format(
-                    location=location, now_formatted='%c'.format(datetime.now()))
-                properties_of_home_prompt = get_prompt("properties_of_home")
-
-                intent_prompt = persona_prompt + "\n\n" + \
-                    intent_detection_prompt + "\n\n" + properties_of_home_prompt
-
+            
+            if self.intention == None:
+                intent_prompt = self.get_prompt('intent_detection')
                 messages = [{"role": "system", "content": intent_prompt}]
                 discover_intention_messages = messages + \
                     [{"role": "user", "content": user_input.text}]
@@ -129,41 +122,26 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
 
                 match self.intention:
                     case "set":
-                        set_prompt = get_prompt('set')
-                        entity_states_prompt = get_prompt('entity_states')
-                        entity_states = self._async_generate_prompt(
-                            entity_states_prompt)
-                        prompt = persona_prompt + "\n\n" + set_prompt + "\n\n" + entity_states
+                        prompt = self.get_prompt('set')
                         messages.append({"role": "system", "content": prompt})
 
                     case "command":
-                        command_prompt = get_prompt('command')
-                        scripts_prompt = get_prompt('scripts')
-                        scripts = self._async_generate_prompt(scripts_prompt)
-                        prompt = persona_prompt + "\n\n" + command_prompt + "\n\n" + scripts
+                        prompt = self.get_prompt('command')
                         messages.append({"role": "system", "content": prompt})
 
                     case "query":
-                        query_prompt = get_prompt('query')
-                        entity_states_prompt = get_prompt('entity_states')
-                        entity_states = self._async_generate_prompt(
-                            entity_states_prompt)
-                        prompt = persona_prompt + "\n\n" + query_prompt + "\n\n" + entity_states
+                        prompt = self.get_prompt('query')
                         messages.append({"role": "system", "content": prompt})
 
-                    case "question":
-                        question_prompt = get_prompt('question')
-                        entity_states_prompt = get_prompt('entity_states')
-                        entity_states = self._async_generate_prompt(
-                            entity_states_prompt)
-                        prompt = persona_prompt + "\n\n" + question_prompt + "\n\n" + entity_states
+                    case "help":
+                        prompt = self.get_prompt('help')
                         messages.append({"role": "system", "content": prompt})
 
-                    case "clarify_intent":
-                        raise Exception(
+                    case "unknown":
+                        raise IntentClarificationException(
                             "Can you rephrase your request and try again?")
                     case _:
-                        raise Exception(
+                        raise IntentClarificationException(
                             "Can you rephrase your request and try again?")
 
             messages.append(
@@ -176,11 +154,11 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                     request_data = json.loads(content)
 
                     if 'clarify' in request_data.keys():
-                        raise Exception(request_data["clarify"])
+                        raise ClarificationException(request_data["clarify"])
                     elif request_data["entities"] == None:
-                        raise Exception("I couldn't find those devices.")
+                        raise ClarificationException("I couldn't find those devices.")
                     elif request_data["set_value"] == None:
-                        raise Exception('I need to know what to set it to.')
+                        raise ClarificationException('I need to know what to set it to.')
 
                     new_message["content"] = request_data["comment"]
 
@@ -188,14 +166,14 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                     request_data = json.loads(content)
 
                     if 'clarify' in request_data.keys():
-                        raise Exception(request_data["clarify"])
+                        raise ClarificationException(request_data["clarify"])
                     elif request_data["area"] == None:
-                        raise Exception("What room is that in?")
+                        raise ClarificationException("What room is that in?")
                     elif request_data["script_id"] == None:
-                        raise Exception(
+                        raise ClarificationException(
                             "I'm not familiar with that. Can you try again?")
                     elif self.hass.states.get(request_data["script_id"]) == None:
-                        raise Exception(
+                        raise ClarificationException(
                             "I'm not able to complete your request in that room. Can you tell me what room and ask again?")
 
                     new_message["content"] = request_data["comment"]
@@ -237,15 +215,11 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 response=intent_response, conversation_id=conversation_id
             )
 
-        except Exception as err:
-            _LOGGER.error(err)
+        except IntentClarificationException as err:
+            _LOGGER.debug("Need for intention clarification: %s", err)
+            self.intention = None
 
-            message = "I'm sorry."
-            if hasattr(err, 'message'):
-                message = message + " " + err.message
-            else:
-                message = message + " " + str(err)
-
+            message = + "I'm sorry. " + str(err)
             new_message["content"] = message
 
             intent_response = intent.IntentResponse(
@@ -253,6 +227,35 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             intent_response.async_set_error(
                 intent.IntentResponseErrorCode.UNKNOWN,
                 message,
+            )
+            return conversation.ConversationResult(
+                response=intent_response, conversation_id=conversation_id
+            )
+
+        except ClarificationException as err:
+            _LOGGER.debug("Need for clarification: %s", err)
+
+            message = "I'm sorry. " + str(err)
+            new_message["content"] = message
+
+            intent_response = intent.IntentResponse(
+                language=user_input.language)
+            intent_response.async_set_error(
+                intent.IntentResponseErrorCode.UNKNOWN,
+                message,
+            )
+            return conversation.ConversationResult(
+                response=intent_response, conversation_id=conversation_id
+            )
+
+        except Exception as err:
+            _LOGGER.error("Uncaught exception: %s", err)
+
+            intent_response = intent.IntentResponse(
+                language=user_input.language)
+            intent_response.async_set_error(
+                intent.IntentResponseErrorCode.UNKNOWN,
+               f"Sorry, I'm having trouble completing your request.",,
             )
             return conversation.ConversationResult(
                 response=intent_response, conversation_id=conversation_id
@@ -300,3 +303,9 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             },
             parse_result=False,
         )
+
+    def get_prompt(prompt_file_name: str) -> str:
+        prompt = pkgutil.get_data(__name__, "prompts/{prompt_file_name}.md.j2".format(
+            prompt_file_name=prompt_file_name)).decode("utf-8")
+
+        return self._async_generate_prompt(prompt)
