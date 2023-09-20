@@ -44,7 +44,8 @@ from .config import (
     DEFAULT_TOP_P,
     DOMAIN,
 )
-from .ClarificationException import (ClarificationException, IntentClarificationException)
+from .ClarificationException import (
+    ClarificationException, IntentClarificationException)
 
 _LOGGER = logging.getLogger(__name__)
 SERVICE_GENERATE_IMAGE = "generate_image"
@@ -110,7 +111,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 messages = self.history[conversation_id]
             else:
                 conversation_id = ulid.ulid()
-            
+
             if self.intention == None:
                 intent_prompt = self.get_prompt('intent_detection')
                 messages = [{"role": "system", "content": intent_prompt}]
@@ -155,9 +156,11 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                         request_data = json.loads(content)
 
                         if request_data["entities"] == None:
-                            raise ClarificationException("I couldn't find those devices. Can you specify different devices and ask again?")
+                            raise ClarificationException(
+                                "I couldn't find those devices. Can you specify different devices and ask again?")
                         elif request_data["set_value"] == None:
-                            raise ClarificationException("I didn't understand what to set the devices to. Can you rephrase your request and ask again?")
+                            raise ClarificationException(
+                                "I didn't understand what to set the devices to. Can you rephrase your request and ask again?")
 
                         new_message["content"] = request_data["comment"]
 
@@ -165,7 +168,8 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                         request_data = json.loads(content)
 
                         if request_data["area"] == None:
-                            raise ClarificationException("What room is that in?")
+                            raise ClarificationException(
+                                "What room is that in?")
                         elif request_data["script_id"] == None:
                             raise ClarificationException(
                                 "I'm not familiar with how to do that. Can you specify something else and ask again?")
@@ -174,7 +178,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                                 "I'm not able to complete your request in that room. Can you specify a different room and ask again?")
 
                         new_message["content"] = request_data["comment"]
-            
+
             except json.JSONDecodeError as err:
                 new_message["content"] = content
 
@@ -254,7 +258,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 language=user_input.language)
             intent_response.async_set_error(
                 intent.IntentResponseErrorCode.UNKNOWN,
-               f"Sorry, I'm having trouble completing your request.",,
+                f"Sorry, I'm having trouble completing your request.",
             )
             return conversation.ConversationResult(
                 response=intent_response, conversation_id=conversation_id
