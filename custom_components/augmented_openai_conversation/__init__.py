@@ -116,6 +116,8 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                 conversation_id = ulid.ulid()
                 self.intention = None
 
+            _LOGGER.info("Intention: %s", self.intention)
+
             if self.intention == None:
                 intent_prompt = pkgutil.get_data(
                     __name__, "prompts/intent_detection.md.j2").decode("utf-8")
