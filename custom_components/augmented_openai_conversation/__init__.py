@@ -121,9 +121,9 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             if self.intention == None:
                 intent_prompt = pkgutil.get_data(
                     __name__, "prompts/intent_detection.md.j2").decode("utf-8")
-                messages = [{"role": "system", "content": intent_prompt}]
-                discover_intention_messages = messages + \
-                    [{"role": "user", "content": user_input.text}]
+                discover_intention_messages = [{"role": "system", "content": intent_prompt}]
+                discover_intention_messages.append("role": "user", "content": user_input.text)
+                messages = []
 
                 [intent_data, new_message] = await self.async_send_openai_messages("intent_detection", discover_intention_messages)
                 self.intention = intent_data
