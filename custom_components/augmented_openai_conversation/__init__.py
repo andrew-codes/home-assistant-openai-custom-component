@@ -288,7 +288,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         top_p = self.entry.options.get(CONF_TOP_P, DEFAULT_TOP_P)
         temperature = self.entry.options.get(
             CONF_TEMPERATURE, DEFAULT_TEMPERATURE)
-        _LOGGER.debug("Prompt for %s: %s", model, messages)
+        _LOGGER.info("Prompt for %s: %s", model, messages)
 
         result = await openai.ChatCompletion.acreate(
             api_key=self.entry.data[CONF_API_KEY],
